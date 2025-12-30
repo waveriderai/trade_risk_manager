@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Transaction, TransactionCreate, Trade } from '../types/index_v2';
-import { tradesApi } from '../services/api';
+import { tradesApi, transactionsApi } from '../services/api';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
 const TransactionsPage: React.FC = () => {
@@ -18,18 +18,12 @@ const TransactionsPage: React.FC = () => {
   const loadTransactions = useCallback(async () => {
     try {
       setLoading(true);
-      // Load all transactions
-      const allTrades = await tradesApi.list({});
-      const allTransactions: Transaction[] = [];
-      
-      for (const trade of allTrades) {
-        // Fetch transactions for each trade (assuming API endpoint exists)
-        // For now, we'll just show placeholder
-      }
-      
+      // Load all transactions from API
+      const allTransactions = await transactionsApi.list();
       setTransactions(allTransactions);
     } catch (error) {
       console.error('Error loading transactions:', error);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -151,8 +145,9 @@ const TransactionsPage: React.FC = () => {
           trades={trades}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
-            setShowAddModal(false);
             loadTransactions();
+            loadTrades();
+            setShowAddModal(false);
           }}
         />
       )}
@@ -162,8 +157,9 @@ const TransactionsPage: React.FC = () => {
         <UploadCSVModal
           onClose={() => setShowUploadModal(false)}
           onSuccess={() => {
-            setShowUploadModal(false);
             loadTransactions();
+            loadTrades();
+            setShowUploadModal(false);
           }}
         />
       )}
@@ -239,8 +235,9 @@ const AddTransactionModal: React.FC<{
     setSubmitting(true);
 
     try {
-      // Call API to create transaction
-      // await tradesApi.createTransaction(formData);
+      // Create transaction via API
+      await transactionsApi.create(formData);
+      alert('Transaction created successfully!');
       onSuccess();
     } catch (error: any) {
       console.error('Error creating transaction:', error);
@@ -403,6 +400,35 @@ const UploadCSVModal: React.FC<{
   onClose: () => void;
   onSuccess: () => void;
 }> = ({ onClose, onSuccess }) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) {
+      alert('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const transactions = await transactionsApi.uploadCsv(file);
+      alert(`Successfully uploaded ${transactions.length} transactions!`);
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      console.error('Error uploading CSV:', error);
+      alert(error.response?.data?.detail || 'Failed to upload CSV');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 max-w-2xl w-full">
@@ -419,31 +445,43 @@ const UploadCSVModal: React.FC<{
           <svg className="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
-          <p className="text-gray-400 mb-4">Drop CSV file here or click to upload</p>
+          <p className="text-gray-400 mb-4">
+            {file ? `Selected: ${file.name}` : 'Drop CSV file here or click to upload'}
+          </p>
           <p className="text-xs text-gray-500 mb-6">
-            Columns: trade_id, transaction_date, action, shares, price, fees, notes
+            Required columns: exit_date, trade_id, action, shares, price
           </p>
           <input
             type="file"
             accept=".csv"
+            onChange={handleFileChange}
             className="hidden"
             id="csv-upload"
           />
           <label
             htmlFor="csv-upload"
-            className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded cursor-pointer transition"
+            className="inline-block px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded cursor-pointer transition mr-2"
           >
             Choose File
           </label>
+          {file && (
+            <button
+              onClick={handleUpload}
+              disabled={uploading}
+              className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition disabled:opacity-50"
+            >
+              {uploading ? 'Uploading...' : 'Upload'}
+            </button>
+          )}
         </div>
 
         <div className="bg-gray-900 rounded p-4 mt-4">
           <p className="text-sm text-gray-400 font-mono mb-2">CSV Format Example:</p>
           <pre className="text-xs text-gray-500 overflow-x-auto">
-{`trade_id,transaction_date,action,shares,price,fees,notes
-1,2024-01-15,Stop1,100,55.50,0,First stop hit
-1,2024-01-20,Profit,50,60.00,1.50,Taking profits
-2,2024-01-22,Stop3,200,45.00,1.50,Full exit`}
+{`exit_date,trade_id,action,shares,price,fees,notes
+2024-01-15,AAPL-001,Stop1,100,55.50,1.00,First stop hit
+2024-01-20,AAPL-001,TP1,50,60.00,1.50,Taking profits
+2024-01-22,TSLA-002,Stop3,200,45.00,1.50,Full exit`}
           </pre>
         </div>
       </div>
