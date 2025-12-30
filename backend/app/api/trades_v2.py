@@ -119,9 +119,10 @@ def get_trades_summary(db: Session = Depends(get_db)):
     Get summary statistics across all trades.
 
     Returns:
-        Aggregate metrics for portfolio
+        Aggregate metrics for portfolio including configuration values
     """
     from decimal import Decimal
+    from app.core.config import settings
 
     trades = db.query(Trade).all()
 
@@ -149,6 +150,19 @@ def get_trades_summary(db: Session = Depends(get_db)):
             Decimal(0)
         )
 
+    # % Portfolio Invested (sum of pct_portfolio_current for open/partial positions)
+    pct_portfolio_invested = None
+    active_positions = [t for t in trades if t.status in ["OPEN", "PARTIAL"] and t.pct_portfolio_current]
+    if active_positions:
+        pct_portfolio_invested = sum(
+            (t.pct_portfolio_current for t in active_positions),
+            Decimal(0)
+        )
+
+    # Configuration values
+    portfolio_size = Decimal(str(settings.DEFAULT_PORTFOLIO_SIZE))
+    buffer_pct = Decimal(str(settings.STOP3_BUFFER_PCT))
+
     return TradeSummary(
         total_trades=total_trades,
         open_trades=open_trades,
@@ -159,6 +173,9 @@ def get_trades_summary(db: Session = Depends(get_db)):
         total_pnl=total_pnl,
         average_r_multiple=average_r_multiple,
         total_portfolio_value=total_portfolio_value,
+        portfolio_size=portfolio_size,
+        buffer_pct=buffer_pct,
+        pct_portfolio_invested=pct_portfolio_invested,
     )
 
 

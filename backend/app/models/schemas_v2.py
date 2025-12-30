@@ -226,6 +226,11 @@ class TradeSummary(BaseModel):
     total_pnl: Decimal
     average_r_multiple: Optional[Decimal]
     total_portfolio_value: Optional[Decimal]
+    # Configuration values
+    portfolio_size: Decimal
+    buffer_pct: Decimal
+    # % Portfolio Invested (sum of pct_portfolio_current for open positions)
+    pct_portfolio_invested: Optional[Decimal]
 
 
 # ==================== Market Data Refresh ====================

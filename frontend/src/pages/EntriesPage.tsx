@@ -8,7 +8,7 @@ import { ColDef, ColGroupDef } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-import { Trade, TradeCreate, COLUMN_LABELS } from '../types';
+import { Trade, TradeCreate, TradeSummary, COLUMN_LABELS } from '../types';
 import { tradesApi } from '../services/api';
 import {
   formatCurrency,
@@ -21,6 +21,7 @@ import {
 
 const EntriesPage: React.FC = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [summary, setSummary] = useState<TradeSummary | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -36,9 +37,20 @@ const EntriesPage: React.FC = () => {
     }
   }, [statusFilter]);
 
+  // Load summary
+  const loadSummary = useCallback(async () => {
+    try {
+      const data = await tradesApi.summary();
+      setSummary(data);
+    } catch (error) {
+      console.error('Error loading summary:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadTrades();
-  }, [loadTrades]);
+    loadSummary();
+  }, [loadTrades, loadSummary]);
 
   // Helper to get color class for column groups
   const getGroupColor = (color: string): string => {
@@ -393,12 +405,46 @@ const EntriesPage: React.FC = () => {
           </button>
 
           <button
-            onClick={loadTrades}
+            onClick={() => {
+              loadTrades();
+              loadSummary();
+            }}
             className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
           >
             Refresh
           </button>
         </div>
+
+        {/* Portfolio Configuration Header */}
+        {summary && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="text-sm text-gray-600 font-medium mb-1">Portfolio Size</div>
+                <div className="text-2xl font-bold text-blue-900">
+                  {formatCurrency(summary.portfolio_size)}
+                </div>
+              </div>
+              <div className="text-center border-l border-r border-blue-200">
+                <div className="text-sm text-gray-600 font-medium mb-1">Buffer %</div>
+                <div className="text-2xl font-bold text-blue-900">
+                  {formatPercent(summary.buffer_pct * 100, 2)}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-gray-600 font-medium mb-1">% Portfolio Invested</div>
+                <div className="text-2xl font-bold text-green-700">
+                  {summary.pct_portfolio_invested !== null && summary.pct_portfolio_invested !== undefined
+                    ? formatPercent(summary.pct_portfolio_invested, 2)
+                    : '-'}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  ({summary.open_trades} Open + {summary.partial_trades} Partial)
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AG Grid with all 36 columns */}
@@ -425,6 +471,7 @@ const EntriesPage: React.FC = () => {
           onSuccess={() => {
             setShowCreateForm(false);
             loadTrades();
+            loadSummary();
           }}
         />
       )}

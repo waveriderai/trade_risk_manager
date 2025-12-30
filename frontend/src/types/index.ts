@@ -132,6 +132,11 @@ export interface TradeSummary {
   total_pnl: number;
   average_r_multiple?: number;
   total_portfolio_value?: number;
+  // Configuration values
+  portfolio_size: number;
+  buffer_pct: number;
+  // % Portfolio Invested (sum of pct_portfolio_current)
+  pct_portfolio_invested?: number;
 }
 
 // Updated action types to include TP1, TP2, TP3, Manual
