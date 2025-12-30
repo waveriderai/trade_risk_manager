@@ -226,7 +226,7 @@ const AddTransactionModal: React.FC<{
   const [formData, setFormData] = useState<TransactionCreate>({
     trade_id: '',
     exit_date: new Date().toISOString().split('T')[0],
-    action: 'Profit',
+    action: 'Manual',  // Valid actions: Stop1, Stop2, Stop3, TP1, TP2, TP3, Manual, Other
     shares: 0,
     price: 0,
     fees: 0,

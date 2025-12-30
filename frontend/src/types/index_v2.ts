@@ -29,7 +29,8 @@ export interface Trade {
 
   // ===== CALCULATED: Price & Day Movement =====
   day_pct_moved?: number;
-  gain_loss_pct_vs_pp?: number;
+  cp_pct_diff_from_entry?: number;  // % Change from Entry (formerly gain_loss_pct_vs_pp)
+  pct_gain_loss_trade?: number;  // Gain/Loss % Trade
 
   // ===== CALCULATED: Portfolio =====
   pct_portfolio_invested_at_entry?: number;
@@ -160,8 +161,8 @@ export const ENTRIES_COLUMN_GROUPS: ColumnGroup[] = [
       'ticker',
       'day_pct_moved',
       'current_price',
-      'gain_loss_pct_vs_pp',
-      'sell_price_at_entry',
+      'cp_pct_diff_from_entry',
+      'pct_gain_loss_trade',
       'purchase_price',
       'pct_portfolio_invested_at_entry',
       'pct_portfolio_current',
