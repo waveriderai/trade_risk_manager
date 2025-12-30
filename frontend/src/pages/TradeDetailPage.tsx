@@ -1,5 +1,5 @@
 /**
- * Trade Detail Page - Comprehensive view of a single trade.
+ * Trade Detail Page - Comprehensive V2 view of a single trade.
  * Shows entry details, linked transactions, and computed summary.
  */
 import React, { useState, useEffect, useCallback } from 'react';
@@ -9,7 +9,6 @@ import { tradesApi, transactionsApi } from '../services/api';
 import {
   formatCurrency,
   formatPercent,
-  formatRMultiple,
   formatDate,
   formatDateTime,
   getStatusColor,
@@ -95,16 +94,16 @@ const TradeDetailPage: React.FC = () => {
           <h2 className="text-xl font-bold mb-4">Entry Details</h2>
           <dl className="space-y-2">
             <div className="flex justify-between">
-              <dt className="text-gray-600">Entry Date:</dt>
-              <dd className="font-medium">{formatDate(trade.entry_date)}</dd>
+              <dt className="text-gray-600">Purchase Date:</dt>
+              <dd className="font-medium">{formatDate(trade.purchase_date)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gray-600">Entry Price:</dt>
-              <dd className="font-medium">{formatCurrency(trade.entry_price)}</dd>
+              <dt className="text-gray-600">Purchase Price:</dt>
+              <dd className="font-medium">{formatCurrency(trade.purchase_price)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gray-600">Entry Shares:</dt>
-              <dd className="font-medium">{trade.entry_shares}</dd>
+              <dt className="text-gray-600">Shares:</dt>
+              <dd className="font-medium">{trade.shares}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-600">Shares Remaining:</dt>
@@ -112,18 +111,24 @@ const TradeDetailPage: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <dt className="text-gray-600">Shares Exited:</dt>
-              <dd className="font-medium">{trade.total_shares_exited}</dd>
+              <dd className="font-medium">{trade.shares_exited}</dd>
             </div>
-            {trade.low_of_day && (
+            {trade.entry_day_low && (
               <div className="flex justify-between">
-                <dt className="text-gray-600">Low of Day:</dt>
-                <dd className="font-medium">{formatCurrency(trade.low_of_day)}</dd>
+                <dt className="text-gray-600">Entry-day Low:</dt>
+                <dd className="font-medium">{formatCurrency(trade.entry_day_low)}</dd>
               </div>
             )}
             {trade.portfolio_size && (
               <div className="flex justify-between">
                 <dt className="text-gray-600">Portfolio Size:</dt>
                 <dd className="font-medium">{formatCurrency(trade.portfolio_size)}</dd>
+              </div>
+            )}
+            {trade.trading_days_open != null && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Trading Days Open:</dt>
+                <dd className="font-medium">{trade.trading_days_open}</dd>
               </div>
             )}
           </dl>
@@ -149,14 +154,26 @@ const TradeDetailPage: React.FC = () => {
               <dt className="text-gray-600">SMA(10):</dt>
               <dd className="font-medium">{formatCurrency(trade.sma_10)}</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Last Updated:</dt>
-              <dd className="font-medium text-sm">{formatDateTime(trade.market_data_updated_at)}</dd>
+            {trade.atr_at_entry && (
+              <div className="flex justify-between border-t pt-2 mt-2">
+                <dt className="text-gray-600 text-sm">ATR at Entry:</dt>
+                <dd className="font-medium text-sm">{formatCurrency(trade.atr_at_entry)}</dd>
+              </div>
+            )}
+            {trade.sma_at_entry && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600 text-sm">SMA at Entry:</dt>
+                <dd className="font-medium text-sm">{formatCurrency(trade.sma_at_entry)}</dd>
+              </div>
+            )}
+            <div className="flex justify-between border-t pt-2 mt-2">
+              <dt className="text-gray-600 text-xs">Last Updated:</dt>
+              <dd className="font-medium text-xs">{formatDateTime(trade.market_data_updated_at)}</dd>
             </div>
           </dl>
         </div>
 
-        {/* Stop Levels */}
+        {/* Stop Levels & Take Profit */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-bold mb-4">Stop Levels</h2>
           <dl className="space-y-2">
@@ -174,7 +191,27 @@ const TradeDetailPage: React.FC = () => {
             </div>
             <div className="flex justify-between mt-4 pt-4 border-t">
               <dt className="text-gray-600">1R Distance:</dt>
-              <dd className="font-medium">{formatCurrency(trade.one_r_distance)}</dd>
+              <dd className="font-medium">{formatCurrency(trade.one_r)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-gray-600">Entry % Above Stop3:</dt>
+              <dd className="font-medium">{formatPercent(trade.entry_pct_above_stop3)}</dd>
+            </div>
+          </dl>
+
+          <h3 className="text-lg font-bold mt-6 mb-2">Take Profit Levels</h3>
+          <dl className="space-y-2">
+            <div className="flex justify-between bg-green-50 p-2 rounded">
+              <dt className="font-medium">TP @1X:</dt>
+              <dd className="font-bold text-green-700">{formatCurrency(trade.tp_1x)}</dd>
+            </div>
+            <div className="flex justify-between bg-green-100 p-2 rounded">
+              <dt className="font-medium">TP @2X:</dt>
+              <dd className="font-bold text-green-800">{formatCurrency(trade.tp_2x)}</dd>
+            </div>
+            <div className="flex justify-between bg-green-200 p-2 rounded">
+              <dt className="font-medium">TP @3X:</dt>
+              <dd className="font-bold text-green-900">{formatCurrency(trade.tp_3x)}</dd>
             </div>
           </dl>
         </div>
@@ -201,22 +238,38 @@ const TradeDetailPage: React.FC = () => {
                 {formatCurrency(trade.total_pnl)}
               </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">% Gain/Loss:</dt>
-              <dd className={`font-medium ${trade.percent_gain_loss && trade.percent_gain_loss > 0 ? 'text-green-600' : trade.percent_gain_loss && trade.percent_gain_loss < 0 ? 'text-red-600' : ''}`}>
-                {formatPercent(trade.percent_gain_loss)}
-              </dd>
-            </div>
-            <div className="flex justify-between bg-blue-50 p-2 rounded">
-              <dt className="font-bold">R-Multiple:</dt>
-              <dd className={`font-bold text-lg ${trade.r_multiple && trade.r_multiple > 0 ? 'text-green-600' : trade.r_multiple && trade.r_multiple < 0 ? 'text-red-600' : ''}`}>
-                {formatRMultiple(trade.r_multiple)}
-              </dd>
-            </div>
-            {trade.weighted_avg_exit_price && (
+            {trade.gain_loss_pct_vs_pp != null && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">% Gain/Loss vs PP:</dt>
+                <dd className={`font-medium ${trade.gain_loss_pct_vs_pp > 0 ? 'text-green-600' : trade.gain_loss_pct_vs_pp < 0 ? 'text-red-600' : ''}`}>
+                  {formatPercent(trade.gain_loss_pct_vs_pp)}
+                </dd>
+              </div>
+            )}
+            {trade.day_pct_moved != null && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Day % Moved:</dt>
+                <dd className={`font-medium ${trade.day_pct_moved > 0 ? 'text-green-600' : trade.day_pct_moved < 0 ? 'text-red-600' : ''}`}>
+                  {formatPercent(trade.day_pct_moved)}
+                </dd>
+              </div>
+            )}
+            {trade.avg_exit_price && (
               <div className="flex justify-between mt-4 pt-4 border-t">
-                <dt className="text-gray-600">Weighted Avg Exit:</dt>
-                <dd className="font-medium">{formatCurrency(trade.weighted_avg_exit_price)}</dd>
+                <dt className="text-gray-600">Avg Exit Price:</dt>
+                <dd className="font-medium">{formatCurrency(trade.avg_exit_price)}</dd>
+              </div>
+            )}
+            {trade.total_proceeds > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Total Proceeds:</dt>
+                <dd className="font-medium">{formatCurrency(trade.total_proceeds)}</dd>
+              </div>
+            )}
+            {trade.total_fees > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Total Fees:</dt>
+                <dd className="font-medium">{formatCurrency(trade.total_fees)}</dd>
               </div>
             )}
           </dl>
@@ -234,30 +287,28 @@ const TradeDetailPage: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exit Date</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticker</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Shares</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Fees</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Proceeds</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">PnL</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {transactions.map((txn) => (
                   <tr key={txn.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">{formatDate(txn.transaction_date)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">{formatDate(txn.exit_date)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded text-xs ${getActionColor(txn.action)}`}>{txn.action}</span>
                     </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">{txn.ticker || trade.ticker}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-right">{txn.shares}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-right">{formatCurrency(txn.price)}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-right">{formatCurrency(txn.fees)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right">{formatCurrency(txn.proceeds)}</td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-sm text-right font-medium ${txn.pnl && txn.pnl > 0 ? 'text-green-600' : txn.pnl && txn.pnl < 0 ? 'text-red-600' : ''}`}>
-                      {formatCurrency(txn.pnl)}
-                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-medium">{formatCurrency(txn.proceeds)}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{txn.notes || '-'}</td>
                   </tr>
                 ))}
@@ -275,7 +326,10 @@ const getActionColor = (action: string): string => {
     Stop1: 'bg-yellow-100 text-yellow-800',
     Stop2: 'bg-orange-100 text-orange-800',
     Stop3: 'bg-red-100 text-red-800',
-    Profit: 'bg-green-100 text-green-800',
+    TP1: 'bg-green-100 text-green-800',
+    TP2: 'bg-green-200 text-green-900',
+    TP3: 'bg-green-300 text-green-900',
+    Manual: 'bg-blue-100 text-blue-800',
     Other: 'bg-gray-100 text-gray-800',
   };
   return colors[action] || '';
