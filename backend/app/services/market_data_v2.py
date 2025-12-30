@@ -225,6 +225,60 @@ class MarketDataService:
             print(f"Error calculating SMA{period}: {e}")
             return None
 
+    def get_sma_from_api(
+        self,
+        ticker: str,
+        window: int,
+        timestamp: Optional[date] = None
+    ) -> Optional[Decimal]:
+        """
+        Fetch SMA directly from Polygon.io SMA endpoint.
+
+        Uses: GET /v1/indicators/sma/{stockTicker}
+
+        Args:
+            ticker: Stock ticker symbol
+            window: SMA period (e.g., 10, 50)
+            timestamp: Optional date for historical SMA (default: current)
+
+        Returns:
+            SMA value as Decimal, or None if unavailable
+        """
+        try:
+            url = f"{self.base_url}/v1/indicators/sma/{ticker}"
+            params = {
+                "apiKey": self.api_key,
+                "timespan": "day",
+                "series_type": "close",
+                "adjusted": "true",
+                "window": window,
+                "limit": 1,
+            }
+
+            # Add timestamp for historical SMA
+            if timestamp:
+                params["timestamp.lte"] = timestamp.strftime("%Y-%m-%d")
+
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+
+            data = response.json()
+
+            # Extract SMA value from results.values[0].value
+            if data.get("results") and data["results"].get("values"):
+                values = data["results"]["values"]
+                if len(values) > 0:
+                    sma_value = values[0].get("value")
+                    if sma_value is not None:
+                        return Decimal(str(round(sma_value, 4)))
+
+            print(f"No SMA{window} data for {ticker} at {timestamp}")
+            return None
+
+        except Exception as e:
+            print(f"Error fetching SMA{window} from API for {ticker}: {e}")
+            return None
+
     def get_historical_indicators_at_date(
         self,
         ticker: str,
@@ -277,6 +331,8 @@ class MarketDataService:
         """
         Fetch current market data and indicators.
 
+        Uses Polygon.io SMA endpoint for SMA values.
+
         Returns:
             Dictionary with: current_price, atr_14, sma_50, sma_10
         """
@@ -296,7 +352,7 @@ class MarketDataService:
 
         # For ATR, we still need historical data as Polygon doesn't have a direct ATR endpoint
         to_date = datetime.now()
-        from_date = entry_date - timedelta(days=110)
+        from_date = entry_date - timedelta(days=30)  # Only need ~20 trading days for ATR14
 
         df = self.get_historical_data(ticker, from_date, to_date)
 

@@ -60,7 +60,7 @@ class TradeResponse(BaseModel):
     entry_day_low: Optional[Decimal]
     stop_override: Optional[Decimal]
     portfolio_size: Optional[Decimal]
-
+            
     # ===== MARKET DATA (Current) =====
     current_price: Optional[Decimal]  # CP
     atr_14: Optional[Decimal]

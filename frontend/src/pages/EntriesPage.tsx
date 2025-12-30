@@ -193,10 +193,10 @@ const EntriesPage: React.FC = () => {
       headerClass: 'bg-cyan-200 font-bold',
       children: [
         {
-          headerName: COLUMN_LABELS.risk_atr_pct_above_low,
-          field: 'risk_atr_pct_above_low',
-          width: 180,
-          valueFormatter: (params) => formatPercent(params.value),
+          headerName: COLUMN_LABELS.risk_atr_r_units,
+          field: 'risk_atr_r_units',
+          width: 150,
+          valueFormatter: (params) => formatNumber(params.value, 2),
         },
         {
           headerName: COLUMN_LABELS.risk_atr_r_units,
