@@ -202,16 +202,16 @@ const TradeDetailPage: React.FC = () => {
           <h3 className="text-lg font-bold mt-6 mb-2">Take Profit Levels</h3>
           <dl className="space-y-2">
             <div className="flex justify-between bg-green-50 p-2 rounded">
-              <dt className="font-medium">TP @1X:</dt>
-              <dd className="font-bold text-green-700">{formatCurrency(trade.tp_1x)}</dd>
+              <dt className="font-medium">TP @1R:</dt>
+              <dd className="font-bold text-green-700">{formatCurrency(trade.tp_1r)}</dd>
             </div>
             <div className="flex justify-between bg-green-100 p-2 rounded">
-              <dt className="font-medium">TP @2X:</dt>
-              <dd className="font-bold text-green-800">{formatCurrency(trade.tp_2x)}</dd>
+              <dt className="font-medium">TP @2R:</dt>
+              <dd className="font-bold text-green-800">{formatCurrency(trade.tp_2r)}</dd>
             </div>
             <div className="flex justify-between bg-green-200 p-2 rounded">
-              <dt className="font-medium">TP @3X:</dt>
-              <dd className="font-bold text-green-900">{formatCurrency(trade.tp_3x)}</dd>
+              <dt className="font-medium">TP @3R:</dt>
+              <dd className="font-bold text-green-900">{formatCurrency(trade.tp_3r)}</dd>
             </div>
           </dl>
         </div>

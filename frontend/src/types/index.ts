@@ -29,7 +29,8 @@ export interface Trade {
 
   // ===== CALCULATED: Price & Day Movement =====
   day_pct_moved?: number;
-  gain_loss_pct_vs_pp?: number;
+  cp_pct_diff_from_entry?: number;
+  pct_gain_loss_trade?: number;
 
   // ===== CALCULATED: Portfolio =====
   pct_portfolio_invested_at_entry?: number;
@@ -40,8 +41,8 @@ export interface Trade {
 
   // ===== CALCULATED: Risk/ATR Metrics =====
   risk_atr_pct_above_low?: number;
-  multiple_from_sma_at_entry?: number;
-  atr_multiple_from_sma_current?: number;
+  atr_pct_multiple_from_ma_at_entry?: number;
+  atr_pct_multiple_from_ma?: number;
 
   // ===== CALCULATED: Stop Levels =====
   stop_3?: number;
@@ -51,12 +52,12 @@ export interface Trade {
   one_r?: number;
 
   // ===== CALCULATED: Take Profit Levels =====
-  tp_1x?: number;
-  tp_2x?: number;
-  tp_3x?: number;
+  tp_1r?: number;
+  tp_2r?: number;
+  tp_3r?: number;
 
   // ===== CALCULATED: Exit Info =====
-  sell_price_at_entry?: number;  // SP
+  sold_price?: number;  // SP
 
   // ===== TRANSACTION ROLLUPS =====
   shares_exited: number;
@@ -154,8 +155,9 @@ export const ENTRIES_COLUMN_GROUPS: ColumnGroup[] = [
       'ticker',
       'day_pct_moved',
       'current_price',
-      'gain_loss_pct_vs_pp',
-      'sell_price_at_entry',
+      'cp_pct_diff_from_entry',
+      'pct_gain_loss_trade',
+      'sold_price',
       'purchase_price',
       'pct_portfolio_invested_at_entry',
       'pct_portfolio_current',
@@ -176,17 +178,17 @@ export const ENTRIES_COLUMN_GROUPS: ColumnGroup[] = [
     color: 'cyan',
     columns: [
       'risk_atr_pct_above_low',
-      'multiple_from_sma_at_entry',
-      'atr_multiple_from_sma_current'
+      'atr_pct_multiple_from_ma_at_entry',
+      'atr_pct_multiple_from_ma'
     ]
   },
   {
     name: 'Take Profit',
     color: 'orange',
     columns: [
-      'tp_1x',
-      'tp_2x',
-      'tp_3x',
+      'tp_1r',
+      'tp_2r',
+      'tp_3r',
       'sma_10'
     ]
   },
@@ -238,8 +240,9 @@ export const COLUMN_LABELS: Record<string, string> = {
   ticker: 'Stock',
   day_pct_moved: 'Day % Moved',
   current_price: 'Current Price',
-  gain_loss_pct_vs_pp: '% Gain/Loss vs. LoD (PP)',
-  sell_price_at_entry: 'Sell Price at Entry',
+  cp_pct_diff_from_entry: 'CP % Diff From Entry (PP)',
+  pct_gain_loss_trade: '% Gain/Loss on Trade',
+  sold_price: 'Sold Price',
   purchase_price: 'Entry / Purchase Price',
   pct_portfolio_invested_at_entry: '% of Portfolio Invested at Entry',
   pct_portfolio_current: '% of Portfolio Current $',
@@ -248,11 +251,11 @@ export const COLUMN_LABELS: Record<string, string> = {
   entry_day_low: 'Entry-day Low',
   trading_days_open: 'Trading Days Open',
   risk_atr_pct_above_low: 'Risk/ATR (% above Low Exit)',
-  multiple_from_sma_at_entry: 'Multiple from SMA at Entry',
-  atr_multiple_from_sma_current: 'ATR/% Multiple from SMA Current',
-  tp_1x: 'TP @ 1X',
-  tp_2x: 'TP @ 2X',
-  tp_3x: 'TP @ 3X',
+  atr_pct_multiple_from_ma_at_entry: 'ATR% Multiple from MA @ Entry',
+  atr_pct_multiple_from_ma: 'ATR% Multiple from MA',
+  tp_1r: 'TP @ 1R',
+  tp_2r: 'TP @ 2R',
+  tp_3r: 'TP @ 3R',
   sma_10: 'SMA10',
   stop_override: 'Override',
   stop_3: 'Stop3 (zone)',
@@ -272,8 +275,8 @@ export const COLUMN_LABELS: Record<string, string> = {
   status: 'Status',
   // Additional fields
   one_r: '1R',
-  atr_at_entry: 'ATR at Entry',
-  sma_at_entry: 'SMA at Entry',
+  atr_at_entry: 'ATR(14) @ Entry',
+  sma_at_entry: 'SMA50 @ Entry',
   portfolio_size: 'Portfolio Size',
   market_data_updated_at: 'Market Data Updated'
 };
