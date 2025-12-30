@@ -34,14 +34,16 @@ export interface Trade {
   // ===== CALCULATED: Portfolio =====
   pct_portfolio_invested_at_entry?: number;
   pct_portfolio_current?: number;
+  gain_loss_pct_portfolio_impact?: number;
 
   // ===== CALCULATED: Time =====
   trading_days_open?: number;
 
   // ===== CALCULATED: Risk/ATR Metrics =====
   risk_atr_pct_above_low?: number;
-  multiple_from_sma_at_entry?: number;
-  atr_multiple_from_sma_current?: number;
+  risk_atr_r_units?: number;
+  atr_pct_multiple_from_ma_at_entry?: number;
+  atr_pct_multiple_from_ma?: number;
 
   // ===== CALCULATED: Stop Levels =====
   stop_3?: number;
@@ -69,6 +71,7 @@ export interface Trade {
   realized_pnl: number;
   unrealized_pnl: number;
   total_pnl: number;
+  r_multiple?: number;
 
   // ===== STATUS =====
   status?: string;  // OPEN, PARTIAL, CLOSED
@@ -131,6 +134,9 @@ export interface TradeSummary {
   total_pnl: number;
   average_r_multiple?: number;
   total_portfolio_value?: number;
+  portfolio_size: number;
+  buffer_pct: number;
+  pct_portfolio_invested?: number;
 }
 
 // Updated action types to include TP1, TP2, TP3, Manual
@@ -238,29 +244,32 @@ export const COLUMN_LABELS: Record<string, string> = {
   ticker: 'Stock',
   day_pct_moved: 'Day % Moved',
   current_price: 'Current Price',
-  gain_loss_pct_vs_pp: '% Gain/Loss vs. LoD (PP)',
-  sell_price_at_entry: 'Sell Price at Entry',
+  cp_pct_diff_from_entry: 'CP % Diff From Entry (PP)',
+  pct_gain_loss_trade: '% Gain/Loss on Trade',
+  sold_price: 'Sold Price',
   purchase_price: 'Entry / Purchase Price',
-  pct_portfolio_invested_at_entry: '% of Portfolio Invested at Entry',
-  pct_portfolio_current: '% of Portfolio Current $',
+  pct_portfolio_invested_at_entry: '% of Portfolio Invested @ Entry',
+  pct_portfolio_current: '% of Portfolio Invested (Current)',
+  gain_loss_pct_portfolio_impact: 'Gain/Loss % Portfolio Impact',
   purchase_date: 'Purchase Date',
   shares: 'Shares (Qty)',
   entry_day_low: 'Entry-day Low',
-  trading_days_open: 'Trading Days Open',
+  trading_days_open: 'Trading Days Owned',
   risk_atr_pct_above_low: 'Risk/ATR (% above Low Exit)',
-  multiple_from_sma_at_entry: 'Multiple from SMA at Entry',
-  atr_multiple_from_sma_current: 'ATR/% Multiple from SMA Current',
-  tp_1x: 'TP @ 1X',
-  tp_2x: 'TP @ 2X',
-  tp_3x: 'TP @ 3X',
+  risk_atr_r_units: 'Risk / ATR (R units)',
+  atr_pct_multiple_from_ma_at_entry: 'ATR% Multiple from MA @ Entry',
+  atr_pct_multiple_from_ma: 'ATR% Multiple from MA (Current)',
+  tp_1r: 'TP @ 1R',
+  tp_2r: 'TP @ 2R',
+  tp_3r: 'TP @ 3R',
   sma_10: 'SMA10',
-  stop_override: 'Override',
+  stop_override: 'Manual Stop3 Override',
   stop_3: 'Stop3 (zone)',
   stop_2: 'Stop2 (2/3)',
   stop_1: 'Stop1 (1/3)',
   entry_pct_above_stop3: 'Entry% Above Stop3',
-  atr_14: 'ATR(14) (sm)',
-  sma_50: 'SMA50',
+  atr_14: 'ATR14 (Current)',
+  sma_50: 'SMA50 (Current)',
   shares_exited: 'Exited Shares',
   shares_remaining: 'Remaining Shares',
   total_proceeds: 'Total Proceeds',
@@ -269,11 +278,12 @@ export const COLUMN_LABELS: Record<string, string> = {
   realized_pnl: 'Realized PnL ($)',
   unrealized_pnl: 'Unrealized PnL ($)',
   total_pnl: 'Total PnL ($)',
+  r_multiple: 'R-Multiple',
   status: 'Status',
   // Additional fields
   one_r: '1R',
-  atr_at_entry: 'ATR at Entry',
-  sma_at_entry: 'SMA at Entry',
+  atr_at_entry: 'ATR14 @ Entry',
+  sma_at_entry: 'SMA50 @ Entry',
   portfolio_size: 'Portfolio Size',
   market_data_updated_at: 'Market Data Updated'
 };

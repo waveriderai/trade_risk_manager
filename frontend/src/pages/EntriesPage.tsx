@@ -148,6 +148,13 @@ const EntriesPage: React.FC = () => {
           valueFormatter: (params) => formatPercent(params.value),
         },
         {
+          headerName: COLUMN_LABELS.gain_loss_pct_portfolio_impact,
+          field: 'gain_loss_pct_portfolio_impact',
+          width: 220,
+          valueFormatter: (params) => formatPercent(params.value),
+          cellClass: (params) => params.value > 0 ? 'text-green-600 font-semibold' : params.value < 0 ? 'text-red-600 font-semibold' : '',
+        },
+        {
           headerName: COLUMN_LABELS.purchase_date,
           field: 'purchase_date',
           width: 130,
@@ -190,6 +197,12 @@ const EntriesPage: React.FC = () => {
           field: 'risk_atr_pct_above_low',
           width: 180,
           valueFormatter: (params) => formatPercent(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.risk_atr_r_units,
+          field: 'risk_atr_r_units',
+          width: 160,
+          valueFormatter: (params) => formatNumber(params.value, 2),
         },
         {
           headerName: COLUMN_LABELS.atr_pct_multiple_from_ma_at_entry,
@@ -363,6 +376,13 @@ const EntriesPage: React.FC = () => {
           field: 'total_pnl',
           width: 130,
           valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: (params) => params.value > 0 ? 'text-green-600 font-bold' : params.value < 0 ? 'text-red-600 font-bold' : 'font-bold',
+        },
+        {
+          headerName: COLUMN_LABELS.r_multiple,
+          field: 'r_multiple',
+          width: 120,
+          valueFormatter: (params) => formatNumber(params.value, 2) + 'R',
           cellClass: (params) => params.value > 0 ? 'text-green-600 font-bold' : params.value < 0 ? 'text-red-600 font-bold' : 'font-bold',
         },
         {

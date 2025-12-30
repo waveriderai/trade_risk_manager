@@ -146,7 +146,8 @@ class WaveRiderCalculations:
         current_price: Optional[Decimal],
         shares: int,
         shares_remaining: int,
-        portfolio_size: Optional[Decimal]
+        portfolio_size: Optional[Decimal],
+        pct_gain_loss_trade: Optional[Decimal]
     ) -> Dict[str, Optional[Decimal]]:
         """
         Calculate portfolio allocation percentages.
@@ -154,11 +155,13 @@ class WaveRiderCalculations:
         Returns:
         - pct_portfolio_invested_at_entry
         - pct_portfolio_current
+        - gain_loss_pct_portfolio_impact
         """
         if not portfolio_size or portfolio_size <= 0:
             return {
                 "pct_portfolio_invested_at_entry": None,
                 "pct_portfolio_current": None,
+                "gain_loss_pct_portfolio_impact": None,
             }
 
         # % of Portfolio Invested at Entry
@@ -177,9 +180,20 @@ class WaveRiderCalculations:
                 Decimal("0.0001"), rounding=ROUND_HALF_UP
             )
 
+        # Gain/Loss % Portfolio Impact
+        # Formula: GainLossPctTrade * PortfolioInvestedAtEntry
+        gain_loss_pct_portfolio_impact = None
+        if pct_gain_loss_trade is not None and pct_portfolio_invested_at_entry is not None:
+            # Convert % gain/loss from decimal to actual percentage for calculation
+            gain_loss_pct_portfolio_impact = pct_gain_loss_trade * pct_portfolio_invested_at_entry
+            gain_loss_pct_portfolio_impact = gain_loss_pct_portfolio_impact.quantize(
+                Decimal("0.0001"), rounding=ROUND_HALF_UP
+            )
+
         return {
             "pct_portfolio_invested_at_entry": pct_portfolio_invested_at_entry,
             "pct_portfolio_current": pct_portfolio_current,
+            "gain_loss_pct_portfolio_impact": gain_loss_pct_portfolio_impact,
         }
 
     @staticmethod
@@ -190,13 +204,15 @@ class WaveRiderCalculations:
         atr_at_entry: Optional[Decimal],
         atr_14: Optional[Decimal],
         sma_at_entry: Optional[Decimal],
-        sma_50: Optional[Decimal]
+        sma_50: Optional[Decimal],
+        one_r: Optional[Decimal]
     ) -> Dict[str, Optional[Decimal]]:
         """
         Calculate ATR and SMA-based metrics.
 
         Returns:
         - risk_atr_pct_above_low: (PP - LoD) / ATR_at_entry * 100
+        - risk_atr_r_units: OneR / ATR_Entry
         - atr_pct_multiple_from_ma_at_entry: ((PP-SMAEntry)/SMAEntry) / (AtrEntry/PP)
         - atr_pct_multiple_from_ma: ((CP-SMA)/SMA) / (ATR/CP)
         """
@@ -206,6 +222,15 @@ class WaveRiderCalculations:
         if atr_at_entry and atr_at_entry > 0 and entry_day_low:
             risk_atr_pct_above_low = ((purchase_price - entry_day_low) / atr_at_entry) * 100
             risk_atr_pct_above_low = risk_atr_pct_above_low.quantize(
+                Decimal("0.0001"), rounding=ROUND_HALF_UP
+            )
+
+        # Risk / ATR (R units)
+        # Formula: OneR / ATR_Entry
+        risk_atr_r_units = None
+        if one_r is not None and atr_at_entry and atr_at_entry > 0:
+            risk_atr_r_units = one_r / atr_at_entry
+            risk_atr_r_units = risk_atr_r_units.quantize(
                 Decimal("0.0001"), rounding=ROUND_HALF_UP
             )
 
@@ -235,9 +260,36 @@ class WaveRiderCalculations:
 
         return {
             "risk_atr_pct_above_low": risk_atr_pct_above_low,
+            "risk_atr_r_units": risk_atr_r_units,
             "atr_pct_multiple_from_ma_at_entry": atr_pct_multiple_from_ma_at_entry,
             "atr_pct_multiple_from_ma": atr_pct_multiple_from_ma,
         }
+
+    @staticmethod
+    def calculate_r_multiple(
+        total_pnl: Decimal,
+        shares: int,
+        one_r: Optional[Decimal]
+    ) -> Optional[Decimal]:
+        """
+        Calculate R-Multiple (risk-reward ratio).
+
+        Formula: Total PnL / (Initial Risk)
+        where Initial Risk = Shares * OneR
+
+        Returns:
+            R-Multiple value or None if cannot be calculated
+        """
+        if one_r is None or one_r <= 0:
+            return None
+
+        initial_risk = shares * one_r
+
+        if initial_risk == 0:
+            return None
+
+        r_multiple = total_pnl / initial_risk
+        return r_multiple.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
     @staticmethod
     def calculate_trading_days(purchase_date: date, as_of_date: Optional[date] = None) -> int:
@@ -404,18 +456,20 @@ class WaveRiderCalculations:
         trade.pct_gain_loss_trade = price_metrics["pct_gain_loss_trade"]
         trade.sold_price = price_metrics["sold_price"]
 
-        # 4. Calculate portfolio metrics (needs shares_remaining)
+        # 4. Calculate portfolio metrics (needs shares_remaining and pct_gain_loss_trade)
         portfolio_metrics = WaveRiderCalculations.calculate_portfolio_metrics(
             trade.purchase_price,
             trade.current_price,
             trade.shares,
             trade.shares_remaining,
-            trade.portfolio_size
+            trade.portfolio_size,
+            trade.pct_gain_loss_trade
         )
         trade.pct_portfolio_invested_at_entry = portfolio_metrics["pct_portfolio_invested_at_entry"]
         trade.pct_portfolio_current = portfolio_metrics["pct_portfolio_current"]
+        trade.gain_loss_pct_portfolio_impact = portfolio_metrics["gain_loss_pct_portfolio_impact"]
 
-        # 5. Calculate ATR/SMA metrics
+        # 5. Calculate ATR/SMA metrics (needs one_r)
         atr_metrics = WaveRiderCalculations.calculate_atr_metrics(
             trade.purchase_price,
             trade.current_price,
@@ -423,13 +477,22 @@ class WaveRiderCalculations:
             trade.atr_at_entry,
             trade.atr_14,
             trade.sma_at_entry,
-            trade.sma_50
+            trade.sma_50,
+            trade.one_r
         )
         trade.risk_atr_pct_above_low = atr_metrics["risk_atr_pct_above_low"]
+        trade.risk_atr_r_units = atr_metrics["risk_atr_r_units"]
         trade.atr_pct_multiple_from_ma_at_entry = atr_metrics["atr_pct_multiple_from_ma_at_entry"]
         trade.atr_pct_multiple_from_ma = atr_metrics["atr_pct_multiple_from_ma"]
 
-        # 6. Calculate trading days open
+        # 6. Calculate R-Multiple
+        trade.r_multiple = WaveRiderCalculations.calculate_r_multiple(
+            trade.total_pnl,
+            trade.shares,
+            trade.one_r
+        )
+
+        # 7. Calculate trading days open
         trade.trading_days_open = WaveRiderCalculations.calculate_trading_days(
             trade.purchase_date
         )

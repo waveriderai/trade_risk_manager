@@ -55,12 +55,14 @@ class Trade(Base):
     portfolio_size = Column(Numeric(15, 2), nullable=True)  # Portfolio snapshot
     pct_portfolio_invested_at_entry = Column(Numeric(10, 4), nullable=True)  # "% of Portfolio Invested at Entry"
     pct_portfolio_current = Column(Numeric(10, 4), nullable=True)  # "% of Portfolio Current $"
+    gain_loss_pct_portfolio_impact = Column(Numeric(10, 4), nullable=True)  # "Gain/Loss % Portfolio Impact"
 
     # ===== CALCULATED: Trading Days =====
     trading_days_open = Column(Integer, nullable=True)  # "Trading Days Open"
 
     # ===== CALCULATED: Risk/ATR Metrics =====
     risk_atr_pct_above_low = Column(Numeric(10, 4), nullable=True)  # "Risk/ATR (% above Low Exit)"
+    risk_atr_r_units = Column(Numeric(10, 4), nullable=True)  # "Risk / ATR (R units)" = OneR / ATR_Entry
     atr_pct_multiple_from_ma_at_entry = Column(Numeric(10, 4), nullable=True)  # "ATR% Multiple from MA @ Entry"
     atr_pct_multiple_from_ma = Column(Numeric(10, 4), nullable=True)  # "ATR% Multiple from MA"
 
@@ -90,6 +92,7 @@ class Trade(Base):
     realized_pnl = Column(Numeric(15, 2), default=0)  # "Realized PnL ($)"
     unrealized_pnl = Column(Numeric(15, 2), default=0)  # "Unrealized PnL ($)"
     total_pnl = Column(Numeric(15, 2), default=0)  # "Total PnL ($)"
+    r_multiple = Column(Numeric(10, 4), nullable=True)  # "R-Multiple" = Total PnL / (Initial Risk)
 
     # ===== CALCULATED: Status =====
     status = Column(String(20), nullable=True)  # "Status" - OPEN/PARTIAL/CLOSED
