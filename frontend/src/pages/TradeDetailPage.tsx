@@ -238,11 +238,11 @@ const TradeDetailPage: React.FC = () => {
                 {formatCurrency(trade.total_pnl)}
               </dd>
             </div>
-            {trade.gain_loss_pct_vs_pp != null && (
+            {trade.cp_pct_diff_from_entry != null && (
               <div className="flex justify-between">
-                <dt className="text-gray-600">% Gain/Loss vs PP:</dt>
-                <dd className={`font-medium ${trade.gain_loss_pct_vs_pp > 0 ? 'text-green-600' : trade.gain_loss_pct_vs_pp < 0 ? 'text-red-600' : ''}`}>
-                  {formatPercent(trade.gain_loss_pct_vs_pp)}
+                <dt className="text-gray-600">CP % Diff From Entry:</dt>
+                <dd className={`font-medium ${trade.cp_pct_diff_from_entry > 0 ? 'text-green-600' : trade.cp_pct_diff_from_entry < 0 ? 'text-red-600' : ''}`}>
+                  {formatPercent(trade.cp_pct_diff_from_entry)}
                 </dd>
               </div>
             )}
