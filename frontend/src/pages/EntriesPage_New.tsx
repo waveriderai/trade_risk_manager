@@ -164,20 +164,39 @@ const EntriesPage: React.FC = () => {
                 <tr className="bg-gray-700 text-gray-300 text-sm">
                   <th className="px-4 py-3 text-left font-medium">ID</th>
                   <th className="px-4 py-3 text-left font-medium">TICKER</th>
-                  <th className="px-4 py-3 text-left font-medium">ENTRY DATE</th>
+                  <th className="px-4 py-3 text-left font-medium">DATE</th>
                   <th className="px-4 py-3 text-right font-medium">ENTRY</th>
                   <th className="px-4 py-3 text-right font-medium">SHARES</th>
                   <th className="px-4 py-3 text-right font-medium">CURRENT</th>
                   <th className="px-4 py-3 text-right font-medium">% CHG</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">%PORT@E</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">%PORT</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">P.IMP</th>
                   <th className="px-4 py-3 text-right font-medium">STOP3</th>
                   <th className="px-4 py-3 text-right font-medium">STOP2</th>
                   <th className="px-4 py-3 text-right font-medium">STOP1</th>
                   <th className="px-4 py-3 text-right font-medium">1R</th>
-                  <th className="px-4 py-3 text-right font-medium">REMAINING</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">R/ATR</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">EXITED</th>
+                  <th className="px-4 py-3 text-right font-medium">REMAIN</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">AVG EX</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">PROC</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">FEES</th>
                   <th className="px-4 py-3 text-right font-medium">REALIZED</th>
-                  <th className="px-4 py-3 text-right font-medium">UNREALIZED</th>
+                  <th className="px-4 py-3 text-right font-medium">UNREAL</th>
                   <th className="px-4 py-3 text-right font-medium">TOTAL P&L</th>
                   <th className="px-4 py-3 text-right font-medium">R-MULT</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">TP@1R</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">TP@2R</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">TP@3R</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">ATR14</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">ATR@E</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">SMA10</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">SMA50</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">SMA@E</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">LOD</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">ST-OV</th>
+                  <th className="px-2 py-3 text-right font-medium text-xs">DAYS</th>
                   <th className="px-4 py-3 text-center font-medium">STATUS</th>
                   <th className="px-4 py-3 text-center font-medium"></th>
                 </tr>
@@ -185,13 +204,13 @@ const EntriesPage: React.FC = () => {
               <tbody className="divide-y divide-gray-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={18} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={37} className="px-4 py-8 text-center text-gray-400">
                       Loading trades...
                     </td>
                   </tr>
                 ) : trades.length === 0 ? (
                   <tr>
-                    <td colSpan={18} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={37} className="px-4 py-8 text-center text-gray-400">
                       No trades found. Create your first trade to get started.
                     </td>
                   </tr>
@@ -247,7 +266,8 @@ const StatCard: React.FC<{
 
 // Trade Row Component
 const TradeRow: React.FC<{ trade: Trade }> = ({ trade }) => {
-  const pnlColor = (val: number) => {
+  const pnlColor = (val?: number) => {
+    if (!val) return 'text-gray-400';
     if (val > 0) return 'text-green-400';
     if (val < 0) return 'text-red-400';
     return 'text-gray-300';
@@ -260,55 +280,80 @@ const TradeRow: React.FC<{ trade: Trade }> = ({ trade }) => {
     return 'bg-gray-600 text-white';
   };
 
+  const fmt = (val?: number | null, decimals = 2) => val != null ? formatNumber(val, decimals) : '—';
+  const fmtCur = (val?: number | null) => val != null ? formatCurrency(val) : '—';
+  const fmtPct = (val?: number | null, decimals = 2) => val != null ? formatPercent(val, decimals) : '—';
+
   return (
     <tr className="hover:bg-gray-750 transition text-sm">
+      {/* Core */}
       <td className="px-4 py-3">
-        <a
-          href={`/trades/${trade.trade_id}`}
-          className="text-blue-400 hover:text-blue-300 font-medium"
-        >
+        <a href={`/trades/${trade.trade_id}`} className="text-blue-400 hover:text-blue-300 font-medium">
           {trade.trade_id}
         </a>
       </td>
       <td className="px-4 py-3 font-semibold text-white">{trade.ticker}</td>
       <td className="px-4 py-3 text-gray-300">{formatDate(trade.purchase_date)}</td>
-      <td className="px-4 py-3 text-right text-gray-300">
-        {formatCurrency(trade.purchase_price)}
-      </td>
+      <td className="px-4 py-3 text-right text-gray-300">{fmtCur(trade.purchase_price)}</td>
       <td className="px-4 py-3 text-right text-gray-300">{trade.shares}</td>
-      <td className="px-4 py-3 text-right text-white font-medium">
-        {formatCurrency(trade.current_price)}
+      <td className="px-4 py-3 text-right text-white font-medium">{fmtCur(trade.current_price)}</td>
+      <td className={`px-4 py-3 text-right font-semibold ${pnlColor(trade.cp_pct_diff_from_entry)}`}>
+        {fmtPct(trade.cp_pct_diff_from_entry, 2)}
       </td>
-      <td className={`px-4 py-3 text-right font-semibold ${pnlColor(trade.cp_pct_diff_from_entry || 0)}`}>
-        {formatPercent(trade.cp_pct_diff_from_entry, 2)}
-      </td>
-      <td className="px-4 py-3 text-right text-red-400">
-        {formatCurrency(trade.stop_3)}
-      </td>
-      <td className="px-4 py-3 text-right text-orange-400">
-        {formatCurrency(trade.stop_2)}
-      </td>
-      <td className="px-4 py-3 text-right text-yellow-400">
-        {formatCurrency(trade.stop_1)}
-      </td>
-      <td className="px-4 py-3 text-right text-gray-300">
-        {formatCurrency(trade.one_r)}
-      </td>
-      <td className="px-4 py-3 text-right text-gray-300">
-        {trade.shares_remaining}
-      </td>
+      
+      {/* Portfolio Context */}
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtPct(trade.pct_portfolio_invested_at_entry, 2)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtPct(trade.pct_portfolio_current, 2)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtPct(trade.gain_loss_pct_portfolio_impact, 2)}</td>
+      
+      {/* Stops & Risk */}
+      <td className="px-4 py-3 text-right text-red-400">{fmtCur(trade.stop_3)}</td>
+      <td className="px-4 py-3 text-right text-orange-400">{fmtCur(trade.stop_2)}</td>
+      <td className="px-4 py-3 text-right text-yellow-400">{fmtCur(trade.stop_1)}</td>
+      <td className="px-4 py-3 text-right text-gray-300">{fmtCur(trade.one_r)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmt(trade.risk_atr_r_units, 2)}</td>
+      
+      {/* Exit Info */}
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{trade.shares_exited || 0}</td>
+      <td className="px-4 py-3 text-right text-gray-300">{trade.shares_remaining}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.avg_exit_price)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.total_proceeds)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.total_fees)}</td>
+      
+      {/* PnL */}
       <td className={`px-4 py-3 text-right font-medium ${pnlColor(trade.realized_pnl)}`}>
-        {formatCurrency(trade.realized_pnl)}
+        {fmtCur(trade.realized_pnl)}
       </td>
       <td className={`px-4 py-3 text-right font-medium ${pnlColor(trade.unrealized_pnl)}`}>
-        {formatCurrency(trade.unrealized_pnl)}
+        {fmtCur(trade.unrealized_pnl)}
       </td>
       <td className={`px-4 py-3 text-right font-bold ${pnlColor(trade.total_pnl)}`}>
-        {formatCurrency(trade.total_pnl)}
+        {fmtCur(trade.total_pnl)}
       </td>
-      <td className={`px-4 py-3 text-right font-bold ${pnlColor(trade.r_multiple || 0)}`}>
-        {trade.r_multiple ? formatNumber(trade.r_multiple, 2) + 'R' : '—'}
+      <td className={`px-4 py-3 text-right font-bold ${pnlColor(trade.r_multiple)}`}>
+        {trade.r_multiple ? fmt(trade.r_multiple, 2) + 'R' : '—'}
       </td>
+      
+      {/* Target Levels */}
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.tp_1r)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.tp_2r)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.tp_3r)}</td>
+      
+      {/* ATR/SMA */}
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.atr_14)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.atr_at_entry)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.sma_10)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.sma_50)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.sma_at_entry)}</td>
+      
+      {/* Manual Fields */}
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.entry_day_low)}</td>
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{fmtCur(trade.stop_override)}</td>
+      
+      {/* Duration */}
+      <td className="px-2 py-3 text-right text-gray-400 text-xs">{trade.trading_days_open || 0}</td>
+      
+      {/* Status & Actions */}
       <td className="px-4 py-3 text-center">
         <span className={`inline-block px-2 py-1 text-xs rounded ${statusColor(trade.status || '')}`}>
           {trade.status}
