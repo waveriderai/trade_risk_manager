@@ -35,12 +35,13 @@ export interface Trade {
   // ===== CALCULATED: Portfolio =====
   pct_portfolio_invested_at_entry?: number;
   pct_portfolio_current?: number;
+  gain_loss_pct_portfolio_impact?: number;  // Gain/Loss % Portfolio Impact
 
   // ===== CALCULATED: Time =====
   trading_days_open?: number;
 
   // ===== CALCULATED: Risk/ATR Metrics =====
-  risk_atr_pct_above_low?: number;
+  risk_atr_r_units?: number;  // Risk / ATR (R units) = OneR / ATR_Entry
   atr_pct_multiple_from_ma_at_entry?: number;
   atr_pct_multiple_from_ma?: number;
 
@@ -70,6 +71,7 @@ export interface Trade {
   realized_pnl: number;
   unrealized_pnl: number;
   total_pnl: number;
+  r_multiple?: number;  // R-Multiple = Total PnL / (OneR * Shares)
 
   // ===== STATUS =====
   status?: string;  // OPEN, PARTIAL, CLOSED
@@ -182,7 +184,7 @@ export const ENTRIES_COLUMN_GROUPS: ColumnGroup[] = [
     name: 'Risk/ATR',
     color: 'cyan',
     columns: [
-      'risk_atr_pct_above_low',
+      'risk_atr_r_units',
       'atr_pct_multiple_from_ma_at_entry',
       'atr_pct_multiple_from_ma'
     ]
@@ -234,6 +236,7 @@ export const ENTRIES_COLUMN_GROUPS: ColumnGroup[] = [
       'realized_pnl',
       'unrealized_pnl',
       'total_pnl',
+      'r_multiple',
       'status'
     ]
   }
@@ -255,7 +258,7 @@ export const COLUMN_LABELS: Record<string, string> = {
   shares: 'Shares (Qty)',
   entry_day_low: 'Entry-day Low',
   trading_days_open: 'Trading Days Open',
-  risk_atr_pct_above_low: 'Risk/ATR (% above Low Exit)',
+  risk_atr_r_units: 'Risk / ATR (R units)',
   atr_pct_multiple_from_ma_at_entry: 'ATR% Multiple from MA @ Entry',
   atr_pct_multiple_from_ma: 'ATR% Multiple from MA',
   tp_1r: 'TP @ 1R',
@@ -277,7 +280,9 @@ export const COLUMN_LABELS: Record<string, string> = {
   realized_pnl: 'Realized PnL ($)',
   unrealized_pnl: 'Unrealized PnL ($)',
   total_pnl: 'Total PnL ($)',
+  r_multiple: 'R-Multiple',
   status: 'Status',
+  gain_loss_pct_portfolio_impact: 'Gain/Loss % Portfolio Impact',
   // Additional fields
   one_r: '1R',
   atr_at_entry: 'ATR(14) @ Entry',

@@ -115,8 +115,14 @@ const TradeDetailPage: React.FC = () => {
             </div>
             {trade.entry_day_low && (
               <div className="flex justify-between">
-                <dt className="text-gray-600">Entry-day Low:</dt>
+                <dt className="text-gray-600">Entry-day Low (LoD):</dt>
                 <dd className="font-medium">{formatCurrency(trade.entry_day_low)}</dd>
+              </div>
+            )}
+            {trade.stop_override && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Manual Stop3 Override:</dt>
+                <dd className="font-medium">{formatCurrency(trade.stop_override)}</dd>
               </div>
             )}
             {trade.portfolio_size && (
@@ -127,11 +133,40 @@ const TradeDetailPage: React.FC = () => {
             )}
             {trade.trading_days_open != null && (
               <div className="flex justify-between">
-                <dt className="text-gray-600">Trading Days Open:</dt>
+                <dt className="text-gray-600">Trading Days Owned:</dt>
                 <dd className="font-medium">{trade.trading_days_open}</dd>
               </div>
             )}
           </dl>
+
+          {/* Portfolio Allocation Metrics */}
+          {trade.portfolio_size && (
+            <>
+              <h3 className="text-lg font-bold mt-6 mb-2">Portfolio Allocation</h3>
+              <dl className="space-y-2">
+                {trade.pct_portfolio_invested_at_entry != null && (
+                  <div className="flex justify-between">
+                    <dt className="text-gray-600">% Portfolio @ Entry:</dt>
+                    <dd className="font-medium">{formatPercent(trade.pct_portfolio_invested_at_entry)}</dd>
+                  </div>
+                )}
+                {trade.pct_portfolio_current != null && (
+                  <div className="flex justify-between">
+                    <dt className="text-gray-600">% Portfolio (Current):</dt>
+                    <dd className="font-medium">{formatPercent(trade.pct_portfolio_current)}</dd>
+                  </div>
+                )}
+                {trade.gain_loss_pct_portfolio_impact != null && (
+                  <div className="flex justify-between">
+                    <dt className="text-gray-600">Gain/Loss % Portfolio Impact:</dt>
+                    <dd className={`font-medium ${trade.gain_loss_pct_portfolio_impact > 0 ? 'text-green-600' : trade.gain_loss_pct_portfolio_impact < 0 ? 'text-red-600' : ''}`}>
+                      {formatPercent(trade.gain_loss_pct_portfolio_impact)}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </>
+          )}
         </div>
 
         {/* Market Data */}
@@ -214,6 +249,29 @@ const TradeDetailPage: React.FC = () => {
               <dd className="font-bold text-green-900">{formatCurrency(trade.tp_3r)}</dd>
             </div>
           </dl>
+
+          {/* Risk/ATR Metrics */}
+          <h3 className="text-lg font-bold mt-6 mb-2">Risk/ATR Metrics</h3>
+          <dl className="space-y-2">
+            {trade.risk_atr_r_units != null && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Risk / ATR (R units):</dt>
+                <dd className="font-medium">{trade.risk_atr_r_units.toFixed(2)}</dd>
+              </div>
+            )}
+            {trade.atr_pct_multiple_from_ma_at_entry != null && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">ATR% Multiple from MA @ Entry:</dt>
+                <dd className="font-medium">{trade.atr_pct_multiple_from_ma_at_entry.toFixed(2)}</dd>
+              </div>
+            )}
+            {trade.atr_pct_multiple_from_ma != null && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">ATR% Multiple from MA (Current):</dt>
+                <dd className="font-medium">{trade.atr_pct_multiple_from_ma.toFixed(2)}</dd>
+              </div>
+            )}
+          </dl>
         </div>
 
         {/* Performance Summary */}
@@ -238,6 +296,14 @@ const TradeDetailPage: React.FC = () => {
                 {formatCurrency(trade.total_pnl)}
               </dd>
             </div>
+            {trade.r_multiple != null && (
+              <div className="flex justify-between bg-blue-50 p-2 rounded">
+                <dt className="font-bold">R-Multiple:</dt>
+                <dd className={`font-bold text-lg ${trade.r_multiple > 0 ? 'text-green-600' : trade.r_multiple < 0 ? 'text-red-600' : ''}`}>
+                  {trade.r_multiple.toFixed(2)}R
+                </dd>
+              </div>
+            )}
             {trade.cp_pct_diff_from_entry != null && (
               <div className="flex justify-between">
                 <dt className="text-gray-600">CP % Diff From Entry:</dt>

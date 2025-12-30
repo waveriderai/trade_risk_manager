@@ -80,12 +80,13 @@ class TradeResponse(BaseModel):
     # ===== CALCULATED: Portfolio =====
     pct_portfolio_invested_at_entry: Optional[Decimal]
     pct_portfolio_current: Optional[Decimal]
+    gain_loss_pct_portfolio_impact: Optional[Decimal]  # Gain/Loss % Portfolio Impact
 
     # ===== CALCULATED: Time =====
     trading_days_open: Optional[int]
 
     # ===== CALCULATED: Risk/ATR Metrics =====
-    risk_atr_pct_above_low: Optional[Decimal]
+    risk_atr_r_units: Optional[Decimal]  # Risk / ATR (R units) = OneR / ATR_Entry
     atr_pct_multiple_from_ma_at_entry: Optional[Decimal]
     atr_pct_multiple_from_ma: Optional[Decimal]
 
@@ -115,6 +116,7 @@ class TradeResponse(BaseModel):
     realized_pnl: Decimal
     unrealized_pnl: Decimal
     total_pnl: Decimal
+    r_multiple: Optional[Decimal]  # R-Multiple = Total PnL / (OneR * Shares)
 
     # ===== STATUS =====
     status: Optional[str]  # OPEN, PARTIAL, CLOSED
