@@ -2,7 +2,7 @@
  * Trade Detail Page - Comprehensive view of a single trade.
  * Shows entry details, linked transactions, and computed summary.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Trade, Transaction } from '../types';
 import { tradesApi, transactionsApi } from '../services/api';
@@ -21,11 +21,7 @@ const TradeDetailPage: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, [tradeId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!tradeId) return;
 
     setLoading(true);
@@ -42,7 +38,11 @@ const TradeDetailPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tradeId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleRefresh = async () => {
     if (!tradeId) return;

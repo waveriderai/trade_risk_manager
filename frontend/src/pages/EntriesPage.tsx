@@ -21,13 +21,11 @@ import {
 
 const EntriesPage: React.FC = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   // Load trades
   const loadTrades = useCallback(async () => {
-    setLoading(true);
     try {
       const params = statusFilter ? { status: statusFilter } : {};
       const data = await tradesApi.list(params);
@@ -35,8 +33,6 @@ const EntriesPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading trades:', error);
       alert('Failed to load trades');
-    } finally {
-      setLoading(false);
     }
   }, [statusFilter]);
 
@@ -170,18 +166,6 @@ const EntriesPage: React.FC = () => {
       valueFormatter: (params) => formatDateTime(params.value),
     },
   ];
-
-  // Refresh market data for selected trade
-  const handleRefresh = async (tradeId: string) => {
-    try {
-      await tradesApi.refresh(tradeId);
-      loadTrades();
-      alert('Market data refreshed');
-    } catch (error) {
-      console.error('Error refreshing:', error);
-      alert('Failed to refresh market data');
-    }
-  };
 
   return (
     <div className="container mx-auto p-6">

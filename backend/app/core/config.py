@@ -2,9 +2,9 @@
 Application configuration using Pydantic settings.
 Environment variables override defaults.
 """
-from typing import List
-from pydantic_settings import BaseSettings
-from pydantic import validator
+from typing import List, Union
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -23,23 +23,25 @@ class Settings(BaseSettings):
     # Market Data
     POLYGON_API_KEY: str = ""
 
-    # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    # CORS - accepts both string (comma-separated) and list
+    ALLOWED_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://localhost:8080"
 
     # Worker
     ENABLE_BACKGROUND_REFRESH: bool = False
     REFRESH_INTERVAL_MINUTES: int = 60
 
-    @validator("ALLOWED_ORIGINS", pre=True)
+    @field_validator("ALLOWED_ORIGINS", mode="before")
+    @classmethod
     def parse_cors_origins(cls, v) -> List[str]:
         """Parse comma-separated origins into list."""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True
+    )
 
 
 # Global settings instance

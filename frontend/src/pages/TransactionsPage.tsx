@@ -14,14 +14,12 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 
 const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(false);
   const [tradeIdFilter, setTradeIdFilter] = useState<string>('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load transactions
   const loadTransactions = useCallback(async () => {
-    setLoading(true);
     try {
       const params = tradeIdFilter ? { trade_id: tradeIdFilter } : {};
       const data = await transactionsApi.list(params);
@@ -29,8 +27,6 @@ const TransactionsPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading transactions:', error);
       alert('Failed to load transactions');
-    } finally {
-      setLoading(false);
     }
   }, [tradeIdFilter]);
 
@@ -44,7 +40,6 @@ const TransactionsPage: React.FC = () => {
     if (!file) return;
 
     try {
-      setLoading(true);
       await transactionsApi.uploadCsv(file);
       alert(`Successfully uploaded ${file.name}`);
       loadTransactions();
@@ -52,7 +47,6 @@ const TransactionsPage: React.FC = () => {
       console.error('Error uploading CSV:', error);
       alert(error.response?.data?.detail || 'Failed to upload CSV');
     } finally {
-      setLoading(false);
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
