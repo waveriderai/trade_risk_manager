@@ -45,10 +45,11 @@ class Trade(Base):
     sma_at_entry = Column(Numeric(12, 4), nullable=True)  # SMA(50) at entry
 
     # ===== CALCULATED: Day Movement =====
-    day_pct_moved = Column(Numeric(10, 4), nullable=True)  # "Day % Moved"
+    day_pct_moved = Column(Numeric(10, 4), nullable=True)  # "Day % Moved" (Day's % Activity)
 
     # ===== CALCULATED: Price vs Purchase Price =====
-    gain_loss_pct_vs_pp = Column(Numeric(10, 4), nullable=True)  # "% Gain/Loss vs. LoD (PP)"
+    cp_pct_diff_from_entry = Column(Numeric(10, 4), nullable=True)  # "CP % Diff From Entry (PP)"
+    pct_gain_loss_trade = Column(Numeric(10, 4), nullable=True)  # "% Gain/Loss on Trade"
 
     # ===== CALCULATED: Portfolio Allocation =====
     portfolio_size = Column(Numeric(15, 2), nullable=True)  # Portfolio snapshot
@@ -60,8 +61,8 @@ class Trade(Base):
 
     # ===== CALCULATED: Risk/ATR Metrics =====
     risk_atr_pct_above_low = Column(Numeric(10, 4), nullable=True)  # "Risk/ATR (% above Low Exit)"
-    multiple_from_sma_at_entry = Column(Numeric(10, 4), nullable=True)  # "Multiple from SMA at Entry"
-    atr_multiple_from_sma_current = Column(Numeric(10, 4), nullable=True)  # "ATR/% Multiple from SMA Current"
+    atr_pct_multiple_from_ma_at_entry = Column(Numeric(10, 4), nullable=True)  # "ATR% Multiple from MA @ Entry"
+    atr_pct_multiple_from_ma = Column(Numeric(10, 4), nullable=True)  # "ATR% Multiple from MA"
 
     # ===== CALCULATED: Stop Levels (3-Stop System) =====
     stop_3 = Column(Numeric(12, 4), nullable=True)  # "Stop3 (zone)"
@@ -71,12 +72,12 @@ class Trade(Base):
     one_r = Column(Numeric(12, 4), nullable=True)  # 1R risk unit (PP - Stop3)
 
     # ===== CALCULATED: Take Profit Levels =====
-    tp_1x = Column(Numeric(12, 4), nullable=True)  # "TP @ 1X"
-    tp_2x = Column(Numeric(12, 4), nullable=True)  # "TP @ 2X"
-    tp_3x = Column(Numeric(12, 4), nullable=True)  # "TP @ 3X"
+    tp_1r = Column(Numeric(12, 4), nullable=True)  # "TP @ 1R"
+    tp_2r = Column(Numeric(12, 4), nullable=True)  # "TP @ 2R"
+    tp_3r = Column(Numeric(12, 4), nullable=True)  # "TP @ 3R"
 
     # ===== CALCULATED: Sale/Exit Info =====
-    sell_price_at_entry = Column(Numeric(12, 4), nullable=True)  # "Sell Price at Entry" (SP)
+    sold_price = Column(Numeric(12, 4), nullable=True)  # "Sold Price" (SP)
 
     # ===== TRANSACTION ROLLUPS =====
     shares_exited = Column(Integer, default=0)  # "Exited Shares"

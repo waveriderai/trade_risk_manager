@@ -74,7 +74,8 @@ class TradeResponse(BaseModel):
 
     # ===== CALCULATED: Price & Day Movement =====
     day_pct_moved: Optional[Decimal]
-    gain_loss_pct_vs_pp: Optional[Decimal]
+    cp_pct_diff_from_entry: Optional[Decimal]
+    pct_gain_loss_trade: Optional[Decimal]
 
     # ===== CALCULATED: Portfolio =====
     pct_portfolio_invested_at_entry: Optional[Decimal]
@@ -85,8 +86,8 @@ class TradeResponse(BaseModel):
 
     # ===== CALCULATED: Risk/ATR Metrics =====
     risk_atr_pct_above_low: Optional[Decimal]
-    multiple_from_sma_at_entry: Optional[Decimal]
-    atr_multiple_from_sma_current: Optional[Decimal]
+    atr_pct_multiple_from_ma_at_entry: Optional[Decimal]
+    atr_pct_multiple_from_ma: Optional[Decimal]
 
     # ===== CALCULATED: Stop Levels =====
     stop_3: Optional[Decimal]
@@ -96,12 +97,12 @@ class TradeResponse(BaseModel):
     one_r: Optional[Decimal]
 
     # ===== CALCULATED: Take Profit Levels =====
-    tp_1x: Optional[Decimal]
-    tp_2x: Optional[Decimal]
-    tp_3x: Optional[Decimal]
+    tp_1r: Optional[Decimal]
+    tp_2r: Optional[Decimal]
+    tp_3r: Optional[Decimal]
 
     # ===== CALCULATED: Exit Info =====
-    sell_price_at_entry: Optional[Decimal]  # SP
+    sold_price: Optional[Decimal]  # SP
 
     # ===== TRANSACTION ROLLUPS =====
     shares_exited: int

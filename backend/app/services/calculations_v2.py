@@ -21,22 +21,30 @@ class WaveRiderCalculations:
     def calculate_stops_and_targets(
         purchase_price: Decimal,
         entry_day_low: Optional[Decimal],
-        stop_override: Optional[Decimal]
+        stop_override: Optional[Decimal],
+        buffer_pct: Decimal = Decimal("0.005")  # Default 0.5%
     ) -> Dict[str, Optional[Decimal]]:
         """
         Calculate 3-Stop levels and Take Profit targets.
 
+        Formula for Stop3: IF(manual_override, manual_override, LoD*(1-Buffer))
+        OneR: PP - Stop3
+        TP @ 1R: PP + 1*OneR
+        TP @ 2R: PP + 2*OneR
+        TP @ 3R: PP + 3*OneR
+
         Returns dictionary with:
         - stop_3, stop_2, stop_1
         - one_r (risk unit)
-        - tp_1x, tp_2x, tp_3x
+        - tp_1r, tp_2r, tp_3r
         - entry_pct_above_stop3
         """
         # Determine Stop3
         if stop_override is not None:
             stop_3 = stop_override
         elif entry_day_low is not None:
-            stop_3 = entry_day_low
+            # Apply buffer: LoD * (1 - Buffer%)
+            stop_3 = entry_day_low * (Decimal("1") - buffer_pct)
         else:
             # Cannot calculate without either value
             return {
@@ -44,9 +52,9 @@ class WaveRiderCalculations:
                 "stop_2": None,
                 "stop_1": None,
                 "one_r": None,
-                "tp_1x": None,
-                "tp_2x": None,
-                "tp_3x": None,
+                "tp_1r": None,
+                "tp_2r": None,
+                "tp_3r": None,
                 "entry_pct_above_stop3": None,
             }
 
@@ -54,23 +62,22 @@ class WaveRiderCalculations:
         if stop_3 >= purchase_price:
             raise ValueError(f"Stop3 ({stop_3}) must be below purchase price ({purchase_price})")
 
-        # Calculate distance (1R risk unit)
-        distance = purchase_price - stop_3
-        one_r = distance
+        # Calculate distance (1R risk unit): PP - Stop3
+        one_r = purchase_price - stop_3
 
         # Calculate Stop2 (2/3 of the way from PP to Stop3)
-        stop_2 = purchase_price - (Decimal("2") / Decimal("3") * distance)
+        stop_2 = purchase_price - (Decimal("2") / Decimal("3") * one_r)
 
         # Calculate Stop1 (1/3 of the way from PP to Stop3)
-        stop_1 = purchase_price - (Decimal("1") / Decimal("3") * distance)
+        stop_1 = purchase_price - (Decimal("1") / Decimal("3") * one_r)
 
         # Calculate Take Profit levels (1R, 2R, 3R above entry)
-        tp_1x = purchase_price + one_r
-        tp_2x = purchase_price + (Decimal("2") * one_r)
-        tp_3x = purchase_price + (Decimal("3") * one_r)
+        tp_1r = purchase_price + one_r
+        tp_2r = purchase_price + (Decimal("2") * one_r)
+        tp_3r = purchase_price + (Decimal("3") * one_r)
 
         # Entry % above Stop3
-        entry_pct_above_stop3 = (distance / stop_3) * 100
+        entry_pct_above_stop3 = (one_r / stop_3) * 100
 
         # Round all values to 4 decimal places
         return {
@@ -78,9 +85,9 @@ class WaveRiderCalculations:
             "stop_2": stop_2.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
             "stop_1": stop_1.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
             "one_r": one_r.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
-            "tp_1x": tp_1x.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
-            "tp_2x": tp_2x.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
-            "tp_3x": tp_3x.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
+            "tp_1r": tp_1r.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
+            "tp_2r": tp_2r.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
+            "tp_3r": tp_3r.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
             "entry_pct_above_stop3": entry_pct_above_stop3.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP),
         }
 
@@ -88,35 +95,50 @@ class WaveRiderCalculations:
     def calculate_price_metrics(
         current_price: Optional[Decimal],
         purchase_price: Decimal,
-        entry_day_low: Optional[Decimal]
+        entry_day_low: Optional[Decimal],
+        sold_price: Optional[Decimal],
+        status: Optional[str]
     ) -> Dict[str, Optional[Decimal]]:
         """
         Calculate price-based metrics.
 
         Returns:
         - day_pct_moved: (CP - LoD) / LoD * 100
-        - gain_loss_pct_vs_pp: (CP - PP) / PP * 100
+        - cp_pct_diff_from_entry: (CP - PP) / PP
+        - pct_gain_loss_trade: (SP - PP) / PP
+        - sold_price: IF(Status="CLOSED", AvgExitPrice, CP)
         """
+        result = {
+            "day_pct_moved": None,
+            "cp_pct_diff_from_entry": None,
+            "pct_gain_loss_trade": None,
+            "sold_price": sold_price,  # Will be calculated below
+        }
+
         if not current_price:
-            return {
-                "day_pct_moved": None,
-                "gain_loss_pct_vs_pp": None,
-            }
+            return result
 
         # Day % Moved (from entry day low to current)
-        day_pct_moved = None
         if entry_day_low and entry_day_low > 0:
-            day_pct_moved = ((current_price - entry_day_low) / entry_day_low) * 100
-            day_pct_moved = day_pct_moved.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+            result["day_pct_moved"] = ((current_price - entry_day_low) / entry_day_low) * 100
+            result["day_pct_moved"] = result["day_pct_moved"].quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
-        # % Gain/Loss vs Purchase Price
-        gain_loss_pct_vs_pp = ((current_price - purchase_price) / purchase_price) * 100
-        gain_loss_pct_vs_pp = gain_loss_pct_vs_pp.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+        # CP % Diff From Entry (PP)
+        result["cp_pct_diff_from_entry"] = (current_price - purchase_price) / purchase_price
+        result["cp_pct_diff_from_entry"] = result["cp_pct_diff_from_entry"].quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
-        return {
-            "day_pct_moved": day_pct_moved,
-            "gain_loss_pct_vs_pp": gain_loss_pct_vs_pp,
-        }
+        # Sold Price: IF(Status="CLOSED", AvgExitPrice, CP)
+        if status == "CLOSED" and sold_price:
+            result["sold_price"] = sold_price
+        else:
+            result["sold_price"] = current_price
+
+        # % Gain/Loss on Trade: (SP - PP) / PP
+        if result["sold_price"]:
+            result["pct_gain_loss_trade"] = (result["sold_price"] - purchase_price) / purchase_price
+            result["pct_gain_loss_trade"] = result["pct_gain_loss_trade"].quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+        return result
 
     @staticmethod
     def calculate_portfolio_metrics(
@@ -166,6 +188,7 @@ class WaveRiderCalculations:
         current_price: Optional[Decimal],
         entry_day_low: Optional[Decimal],
         atr_at_entry: Optional[Decimal],
+        atr_14: Optional[Decimal],
         sma_at_entry: Optional[Decimal],
         sma_50: Optional[Decimal]
     ) -> Dict[str, Optional[Decimal]]:
@@ -173,9 +196,9 @@ class WaveRiderCalculations:
         Calculate ATR and SMA-based metrics.
 
         Returns:
-        - risk_atr_pct_above_low
-        - multiple_from_sma_at_entry
-        - atr_multiple_from_sma_current
+        - risk_atr_pct_above_low: (PP - LoD) / ATR_at_entry * 100
+        - atr_pct_multiple_from_ma_at_entry: ((PP-SMAEntry)/SMAEntry) / (AtrEntry/PP)
+        - atr_pct_multiple_from_ma: ((CP-SMA)/SMA) / (ATR/CP)
         """
         # Risk/ATR (% above Low Exit)
         # Formula: (PP - LoD) / ATR_at_entry * 100
@@ -186,28 +209,34 @@ class WaveRiderCalculations:
                 Decimal("0.0001"), rounding=ROUND_HALF_UP
             )
 
-        # Multiple from SMA at Entry
-        # Formula: PP / SMA_at_entry
-        multiple_from_sma_at_entry = None
-        if sma_at_entry and sma_at_entry > 0:
-            multiple_from_sma_at_entry = purchase_price / sma_at_entry
-            multiple_from_sma_at_entry = multiple_from_sma_at_entry.quantize(
-                Decimal("0.0001"), rounding=ROUND_HALF_UP
-            )
+        # ATR% Multiple from MA @ Entry
+        # Formula: ((PP-SMAEntry)/SMAEntry) / (AtrEntry/PP)
+        atr_pct_multiple_from_ma_at_entry = None
+        if sma_at_entry and sma_at_entry > 0 and atr_at_entry and atr_at_entry > 0:
+            pct_from_sma = (purchase_price - sma_at_entry) / sma_at_entry
+            atr_as_pct_of_pp = atr_at_entry / purchase_price
+            if atr_as_pct_of_pp != 0:
+                atr_pct_multiple_from_ma_at_entry = pct_from_sma / atr_as_pct_of_pp
+                atr_pct_multiple_from_ma_at_entry = atr_pct_multiple_from_ma_at_entry.quantize(
+                    Decimal("0.0001"), rounding=ROUND_HALF_UP
+                )
 
-        # ATR/% Multiple from SMA Current
-        # Formula: CP / SMA_current
-        atr_multiple_from_sma_current = None
-        if current_price and sma_50 and sma_50 > 0:
-            atr_multiple_from_sma_current = current_price / sma_50
-            atr_multiple_from_sma_current = atr_multiple_from_sma_current.quantize(
-                Decimal("0.0001"), rounding=ROUND_HALF_UP
-            )
+        # ATR% Multiple from MA
+        # Formula: ((CP-SMA)/SMA) / (ATR/CP)
+        atr_pct_multiple_from_ma = None
+        if current_price and sma_50 and sma_50 > 0 and atr_14 and atr_14 > 0:
+            pct_from_sma_current = (current_price - sma_50) / sma_50
+            atr_as_pct_of_cp = atr_14 / current_price
+            if atr_as_pct_of_cp != 0:
+                atr_pct_multiple_from_ma = pct_from_sma_current / atr_as_pct_of_cp
+                atr_pct_multiple_from_ma = atr_pct_multiple_from_ma.quantize(
+                    Decimal("0.0001"), rounding=ROUND_HALF_UP
+                )
 
         return {
             "risk_atr_pct_above_low": risk_atr_pct_above_low,
-            "multiple_from_sma_at_entry": multiple_from_sma_at_entry,
-            "atr_multiple_from_sma_current": atr_multiple_from_sma_current,
+            "atr_pct_multiple_from_ma_at_entry": atr_pct_multiple_from_ma_at_entry,
+            "atr_pct_multiple_from_ma": atr_pct_multiple_from_ma,
         }
 
     @staticmethod
@@ -323,7 +352,7 @@ class WaveRiderCalculations:
         }
 
     @staticmethod
-    def update_all_calculations(trade: Trade, db: Session) -> None:
+    def update_all_calculations(trade: Trade, db: Session, buffer_pct: Decimal = Decimal("0.005")) -> None:
         """
         Update ALL calculated fields on a trade.
 
@@ -334,31 +363,7 @@ class WaveRiderCalculations:
 
         Modifies trade in-place (caller must commit).
         """
-        # 1. Calculate stops and targets
-        stops_and_targets = WaveRiderCalculations.calculate_stops_and_targets(
-            trade.purchase_price,
-            trade.entry_day_low,
-            trade.stop_override
-        )
-        trade.stop_3 = stops_and_targets["stop_3"]
-        trade.stop_2 = stops_and_targets["stop_2"]
-        trade.stop_1 = stops_and_targets["stop_1"]
-        trade.one_r = stops_and_targets["one_r"]
-        trade.tp_1x = stops_and_targets["tp_1x"]
-        trade.tp_2x = stops_and_targets["tp_2x"]
-        trade.tp_3x = stops_and_targets["tp_3x"]
-        trade.entry_pct_above_stop3 = stops_and_targets["entry_pct_above_stop3"]
-
-        # 2. Calculate price metrics
-        price_metrics = WaveRiderCalculations.calculate_price_metrics(
-            trade.current_price,
-            trade.purchase_price,
-            trade.entry_day_low
-        )
-        trade.day_pct_moved = price_metrics["day_pct_moved"]
-        trade.gain_loss_pct_vs_pp = price_metrics["gain_loss_pct_vs_pp"]
-
-        # 3. Calculate transaction rollups FIRST (needed for shares_remaining)
+        # 1. Calculate transaction rollups FIRST (needed for status, avg_exit_price)
         rollups = WaveRiderCalculations.calculate_trade_rollups(trade, db)
         trade.shares_exited = rollups["shares_exited"]
         trade.shares_remaining = rollups["shares_remaining"]
@@ -369,6 +374,35 @@ class WaveRiderCalculations:
         trade.unrealized_pnl = rollups["unrealized_pnl"]
         trade.total_pnl = rollups["total_pnl"]
         trade.status = rollups["status"]
+
+        # 2. Calculate stops and targets
+        stops_and_targets = WaveRiderCalculations.calculate_stops_and_targets(
+            trade.purchase_price,
+            trade.entry_day_low,
+            trade.stop_override,
+            buffer_pct
+        )
+        trade.stop_3 = stops_and_targets["stop_3"]
+        trade.stop_2 = stops_and_targets["stop_2"]
+        trade.stop_1 = stops_and_targets["stop_1"]
+        trade.one_r = stops_and_targets["one_r"]
+        trade.tp_1r = stops_and_targets["tp_1r"]
+        trade.tp_2r = stops_and_targets["tp_2r"]
+        trade.tp_3r = stops_and_targets["tp_3r"]
+        trade.entry_pct_above_stop3 = stops_and_targets["entry_pct_above_stop3"]
+
+        # 3. Calculate price metrics (needs status and avg_exit_price for sold_price)
+        price_metrics = WaveRiderCalculations.calculate_price_metrics(
+            trade.current_price,
+            trade.purchase_price,
+            trade.entry_day_low,
+            trade.avg_exit_price,  # sold_price input
+            trade.status
+        )
+        trade.day_pct_moved = price_metrics["day_pct_moved"]
+        trade.cp_pct_diff_from_entry = price_metrics["cp_pct_diff_from_entry"]
+        trade.pct_gain_loss_trade = price_metrics["pct_gain_loss_trade"]
+        trade.sold_price = price_metrics["sold_price"]
 
         # 4. Calculate portfolio metrics (needs shares_remaining)
         portfolio_metrics = WaveRiderCalculations.calculate_portfolio_metrics(
@@ -387,12 +421,13 @@ class WaveRiderCalculations:
             trade.current_price,
             trade.entry_day_low,
             trade.atr_at_entry,
+            trade.atr_14,
             trade.sma_at_entry,
             trade.sma_50
         )
         trade.risk_atr_pct_above_low = atr_metrics["risk_atr_pct_above_low"]
-        trade.multiple_from_sma_at_entry = atr_metrics["multiple_from_sma_at_entry"]
-        trade.atr_multiple_from_sma_current = atr_metrics["atr_multiple_from_sma_current"]
+        trade.atr_pct_multiple_from_ma_at_entry = atr_metrics["atr_pct_multiple_from_ma_at_entry"]
+        trade.atr_pct_multiple_from_ma = atr_metrics["atr_pct_multiple_from_ma"]
 
         # 6. Calculate trading days open
         trade.trading_days_open = WaveRiderCalculations.calculate_trading_days(
