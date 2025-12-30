@@ -13,6 +13,7 @@ import { tradesApi } from '../services/api';
 import {
   formatCurrency,
   formatPercent,
+  formatNumber,
   formatDate,
   formatDateTime,
   getStatusColor,
