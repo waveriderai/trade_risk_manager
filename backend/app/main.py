@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.api import api_router
+from app.models import Trade, Transaction  # Import models BEFORE creating tables
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
