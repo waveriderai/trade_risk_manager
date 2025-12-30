@@ -137,7 +137,8 @@ class MarketDataService:
 
     def calculate_sma(self, df: pd.DataFrame, period: int) -> Optional[Decimal]:
         """
-        Calculate Simple Moving Average.
+        Calculate Simple Moving Average locally from DataFrame.
+        DEPRECATED: Prefer get_sma_from_api for accuracy.
 
         Args:
             df: DataFrame with 'close' column
@@ -162,6 +163,60 @@ class MarketDataService:
             print(f"Error calculating SMA{period}: {e}")
             return None
 
+    def get_sma_from_api(
+        self,
+        ticker: str,
+        window: int,
+        timestamp: Optional[date] = None
+    ) -> Optional[Decimal]:
+        """
+        Fetch SMA directly from Polygon.io SMA endpoint.
+
+        Uses: GET /v1/indicators/sma/{stockTicker}
+
+        Args:
+            ticker: Stock ticker symbol
+            window: SMA period (e.g., 10, 50)
+            timestamp: Optional date for historical SMA (default: current)
+
+        Returns:
+            SMA value as Decimal, or None if unavailable
+        """
+        try:
+            url = f"{self.base_url}/v1/indicators/sma/{ticker}"
+            params = {
+                "apiKey": self.api_key,
+                "timespan": "day",
+                "series_type": "close",
+                "adjusted": "true",
+                "window": window,
+                "limit": 1,
+            }
+
+            # Add timestamp for historical SMA
+            if timestamp:
+                params["timestamp.lte"] = timestamp.strftime("%Y-%m-%d")
+
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+
+            data = response.json()
+
+            # Extract SMA value from results.values[0].value
+            if data.get("results") and data["results"].get("values"):
+                values = data["results"]["values"]
+                if len(values) > 0:
+                    sma_value = values[0].get("value")
+                    if sma_value is not None:
+                        return Decimal(str(round(sma_value, 4)))
+
+            print(f"No SMA{window} data for {ticker} at {timestamp}")
+            return None
+
+        except Exception as e:
+            print(f"Error fetching SMA{window} from API for {ticker}: {e}")
+            return None
+
     def get_historical_indicators_at_date(
         self,
         ticker: str,
@@ -181,36 +236,31 @@ class MarketDataService:
         Returns:
             Dictionary with: atr_14, sma_50, sma_10
         """
-        # Fetch historical data up to target date
+        result = {
+            "atr_14": None,
+            "sma_50": None,
+            "sma_10": None,
+        }
+
+        # Use Polygon SMA API endpoint for SMAs
+        result["sma_50"] = self.get_sma_from_api(ticker, window=50, timestamp=target_date)
+        result["sma_10"] = self.get_sma_from_api(ticker, window=10, timestamp=target_date)
+
+        # For ATR, still need historical data calculation
         from_date = target_date - timedelta(days=lookback_days)
         to_date = target_date
 
         df = self.get_historical_data(ticker, from_date, to_date)
 
-        if df is None or len(df) == 0:
-            return {
-                "atr_14": None,
-                "sma_50": None,
-                "sma_10": None,
-            }
+        if df is not None and len(df) > 0:
+            # Filter to data up to and including target_date
+            df["date"] = pd.to_datetime(df["date"]).dt.date
+            df = df[df["date"] <= target_date]
 
-        # Filter to data up to and including target_date
-        df["date"] = pd.to_datetime(df["date"]).dt.date
-        df = df[df["date"] <= target_date]
+            if len(df) > 0:
+                result["atr_14"] = self.calculate_atr(df, period=14)
 
-        if len(df) == 0:
-            return {
-                "atr_14": None,
-                "sma_50": None,
-                "sma_10": None,
-            }
-
-        # Calculate indicators as of target_date
-        return {
-            "atr_14": self.calculate_atr(df, period=14),
-            "sma_50": self.calculate_sma(df, period=50),
-            "sma_10": self.calculate_sma(df, period=10),
-        }
+        return result
 
     def get_current_indicators(
         self,
@@ -219,6 +269,8 @@ class MarketDataService:
     ) -> Dict[str, Optional[Decimal]]:
         """
         Fetch current market data and indicators.
+
+        Uses Polygon.io SMA endpoint for SMA values.
 
         Returns:
             Dictionary with: current_price, atr_14, sma_50, sma_10
@@ -233,18 +285,18 @@ class MarketDataService:
         # Get current price
         result["current_price"] = self.get_current_price(ticker)
 
-        # Get historical data (need ~70 trading days for SMA50 + ATR14)
-        # Account for weekends/holidays: fetch 110 calendar days to be safe
+        # Use Polygon SMA API endpoint for SMAs (current = no timestamp)
+        result["sma_50"] = self.get_sma_from_api(ticker, window=50)
+        result["sma_10"] = self.get_sma_from_api(ticker, window=10)
+
+        # Get historical data for ATR calculation only
         to_date = datetime.now()
-        from_date = entry_date - timedelta(days=110)
+        from_date = entry_date - timedelta(days=30)  # Only need ~20 trading days for ATR14
 
         df = self.get_historical_data(ticker, from_date, to_date)
 
         if df is not None and len(df) > 0:
-            # Calculate indicators
             result["atr_14"] = self.calculate_atr(df, period=14)
-            result["sma_50"] = self.calculate_sma(df, period=50)
-            result["sma_10"] = self.calculate_sma(df, period=10)
 
         return result
 
