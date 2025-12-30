@@ -1,5 +1,5 @@
 /**
- * Transactions Page - List and manage exit transactions.
+ * Transactions Page - Exit transactions with EXACTLY 9 columns.
  * Supports manual entry and CSV upload.
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -54,9 +54,14 @@ const TransactionsPage: React.FC = () => {
     }
   };
 
-  // Column definitions
+  // EXACT 9 columns matching backend schema
   const columnDefs: ColDef[] = [
-    { headerName: 'ID', field: 'id', width: 80 },
+    {
+      headerName: 'Exit Date',
+      field: 'exit_date',
+      width: 120,
+      valueFormatter: (params) => formatDate(params.value),
+    },
     {
       headerName: 'Trade ID',
       field: 'trade_id',
@@ -64,7 +69,7 @@ const TransactionsPage: React.FC = () => {
       cellRenderer: (params: any) => (
         <a
           href={`/trades/${params.value}`}
-          className="text-blue-600 hover:underline"
+          className="text-blue-600 hover:underline font-medium"
           onClick={(e) => {
             e.preventDefault();
             window.location.href = `/trades/${params.value}`;
@@ -75,12 +80,6 @@ const TransactionsPage: React.FC = () => {
       ),
     },
     {
-      headerName: 'Date',
-      field: 'transaction_date',
-      width: 120,
-      valueFormatter: (params) => formatDate(params.value),
-    },
-    {
       headerName: 'Action',
       field: 'action',
       width: 100,
@@ -89,22 +88,42 @@ const TransactionsPage: React.FC = () => {
           Stop1: 'bg-yellow-100 text-yellow-800',
           Stop2: 'bg-orange-100 text-orange-800',
           Stop3: 'bg-red-100 text-red-800',
-          Profit: 'bg-green-100 text-green-800',
+          TP1: 'bg-green-100 text-green-800',
+          TP2: 'bg-green-200 text-green-900',
+          TP3: 'bg-green-300 text-green-900',
+          Manual: 'bg-blue-100 text-blue-800',
           Other: 'bg-gray-100 text-gray-800',
         };
         return (
-          <span className={`px-2 py-1 rounded text-xs ${colors[params.value] || ''}`}>
+          <span className={`px-2 py-1 rounded text-xs font-medium ${colors[params.value] || ''}`}>
             {params.value}
           </span>
         );
       },
     },
-    { headerName: 'Shares', field: 'shares', width: 100 },
+    {
+      headerName: 'Ticker',
+      field: 'ticker',
+      width: 80,
+      cellClass: 'font-semibold',
+    },
+    {
+      headerName: 'Shares',
+      field: 'shares',
+      width: 100,
+    },
     {
       headerName: 'Price',
       field: 'price',
       width: 110,
       valueFormatter: (params) => formatCurrency(params.value),
+    },
+    {
+      headerName: 'Proceeds',
+      field: 'proceeds',
+      width: 120,
+      valueFormatter: (params) => formatCurrency(params.value),
+      cellClass: 'font-medium',
     },
     {
       headerName: 'Fees',
@@ -113,23 +132,9 @@ const TransactionsPage: React.FC = () => {
       valueFormatter: (params) => formatCurrency(params.value),
     },
     {
-      headerName: 'Proceeds',
-      field: 'proceeds',
-      width: 120,
-      valueFormatter: (params) => formatCurrency(params.value),
-    },
-    {
-      headerName: 'PnL',
-      field: 'pnl',
-      width: 120,
-      valueFormatter: (params) => formatCurrency(params.value),
-      cellClass: (params) =>
-        params.value > 0 ? 'text-green-600 font-bold' : params.value < 0 ? 'text-red-600 font-bold' : 'font-bold',
-    },
-    {
       headerName: 'Notes',
       field: 'notes',
-      width: 200,
+      width: 250,
       cellClass: 'text-sm',
     },
   ];
@@ -137,7 +142,8 @@ const TransactionsPage: React.FC = () => {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-4">Exit Transactions</h1>
+        <h1 className="text-3xl font-bold mb-2">Exit Transactions</h1>
+        <p className="text-gray-600 mb-4">9-Column Transaction Grid</p>
 
         <div className="flex gap-4 mb-4">
           <input
@@ -177,16 +183,18 @@ const TransactionsPage: React.FC = () => {
 
         {/* CSV Format Help */}
         <div className="bg-blue-50 border border-blue-200 rounded p-4 text-sm">
-          <p className="font-medium mb-2">CSV Format:</p>
+          <p className="font-medium mb-2">CSV Format (exit_date, trade_id, action, ticker, shares, price, fees, notes):</p>
           <code className="block bg-white p-2 rounded">
-            trade_id,transaction_date,action,shares,price,fees,notes
+            exit_date,trade_id,action,ticker,shares,price,fees,notes
             <br />
-            AAPL-001,2024-01-20,Stop2,50,190.25,1.00,Partial exit
+            2024-01-20,AAPL-001,TP1,AAPL,50,190.25,1.00,Partial exit at TP1
+            <br />
+            2024-01-21,TSLA-002,Stop2,TSLA,100,245.80,2.50,Hit Stop2
           </code>
         </div>
       </div>
 
-      {/* AG Grid */}
+      {/* AG Grid with exactly 9 columns */}
       <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
         <AgGridReact
           rowData={transactions}
@@ -216,15 +224,15 @@ const TransactionsPage: React.FC = () => {
   );
 };
 
-// Simple create transaction modal
+// Create transaction modal
 const CreateTransactionModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({
   onClose,
   onSuccess,
 }) => {
   const [formData, setFormData] = useState<TransactionCreate>({
     trade_id: '',
-    transaction_date: new Date().toISOString().split('T')[0],
-    action: 'Profit',
+    exit_date: new Date().toISOString().split('T')[0],
+    action: 'TP1',
     shares: 0,
     price: 0,
     fees: 0,
@@ -247,11 +255,11 @@ const CreateTransactionModal: React.FC<{ onClose: () => void; onSuccess: () => v
     }
   };
 
-  const actions: ActionType[] = ['Stop1', 'Stop2', 'Stop3', 'Profit', 'Other'];
+  const actions: ActionType[] = ['Stop1', 'Stop2', 'Stop3', 'TP1', 'TP2', 'TP3', 'Manual', 'Other'];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-screen overflow-y-auto">
         <h2 className="text-2xl font-bold mb-4">Add Exit Transaction</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -268,12 +276,12 @@ const CreateTransactionModal: React.FC<{ onClose: () => void; onSuccess: () => v
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Transaction Date *</label>
+            <label className="block text-sm font-medium mb-1">Exit Date *</label>
             <input
               type="date"
               required
-              value={formData.transaction_date}
-              onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
+              value={formData.exit_date}
+              onChange={(e) => setFormData({ ...formData, exit_date: e.target.value })}
               className="w-full border rounded px-3 py-2"
             />
           </div>
@@ -283,7 +291,7 @@ const CreateTransactionModal: React.FC<{ onClose: () => void; onSuccess: () => v
             <select
               required
               value={formData.action}
-              onChange={(e) => setFormData({ ...formData, action: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, action: e.target.value as ActionType })}
               className="w-full border rounded px-3 py-2"
             >
               {actions.map((action) => (
@@ -292,6 +300,17 @@ const CreateTransactionModal: React.FC<{ onClose: () => void; onSuccess: () => v
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Ticker (optional)</label>
+            <input
+              type="text"
+              value={formData.ticker || ''}
+              onChange={(e) => setFormData({ ...formData, ticker: e.target.value.toUpperCase() || undefined })}
+              className="w-full border rounded px-3 py-2"
+              placeholder="Copied from trade if empty"
+            />
           </div>
 
           <div>

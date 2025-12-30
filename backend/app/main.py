@@ -1,5 +1,5 @@
 """
-WaveRider Trading Journal - Backend API
+WaveRider Trading Journal - Backend API (V2 - Complete 36-Column System)
 FastAPI application entry point.
 """
 from fastapi import FastAPI

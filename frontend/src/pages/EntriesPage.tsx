@@ -1,19 +1,18 @@
 /**
- * Entries Page - Spreadsheet-style grid of all trades.
- * Shows one row per Trade ID with calculated fields.
+ * Entries Page - Complete WaveRider 3-Stop Trading Journal with ALL 36 columns.
+ * Matches Google Sheet layout with color-coded column groups.
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef } from 'ag-grid-community';
+import { ColDef, ColGroupDef } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-import { Trade, TradeCreate } from '../types';
+import { Trade, TradeCreate, COLUMN_LABELS } from '../types';
 import { tradesApi } from '../services/api';
 import {
   formatCurrency,
   formatPercent,
-  formatRMultiple,
   formatDate,
   formatDateTime,
   getStatusColor,
@@ -40,137 +39,331 @@ const EntriesPage: React.FC = () => {
     loadTrades();
   }, [loadTrades]);
 
-  // Column definitions
-  const columnDefs: ColDef[] = [
+  // Helper to get color class for column groups
+  const getGroupColor = (color: string): string => {
+    const colors: Record<string, string> = {
+      green: 'bg-green-100',
+      gray: 'bg-gray-100',
+      cyan: 'bg-cyan-100',
+      orange: 'bg-orange-100',
+      yellow: 'bg-yellow-100',
+    };
+    return colors[color] || 'bg-white';
+  };
+
+  // Complete column definitions - ALL 36 COLUMNS in groups
+  const columnDefs: (ColDef | ColGroupDef)[] = [
+    // ===== ENTRY GROUP (Green) =====
     {
-      headerName: 'Trade ID',
-      field: 'trade_id',
-      pinned: 'left',
-      width: 120,
-      cellRenderer: (params: any) => (
-        <a
-          href={`/trades/${params.value}`}
-          className="text-blue-600 hover:underline"
-          onClick={(e) => {
-            e.preventDefault();
-            window.location.href = `/trades/${params.value}`;
-          }}
-        >
-          {params.value}
-        </a>
-      ),
+      headerName: 'Entry',
+      headerClass: 'bg-green-200 font-bold',
+      children: [
+        {
+          headerName: COLUMN_LABELS.trade_id,
+          field: 'trade_id',
+          pinned: 'left',
+          width: 120,
+          cellRenderer: (params: any) => (
+            <a
+              href={`/trades/${params.value}`}
+              className="text-blue-600 hover:underline font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = `/trades/${params.value}`;
+              }}
+            >
+              {params.value}
+            </a>
+          ),
+        },
+        {
+          headerName: COLUMN_LABELS.ticker,
+          field: 'ticker',
+          width: 80,
+          cellClass: 'font-semibold',
+        },
+        {
+          headerName: COLUMN_LABELS.day_pct_moved,
+          field: 'day_pct_moved',
+          width: 120,
+          valueFormatter: (params) => formatPercent(params.value),
+          cellClass: (params) => params.value > 0 ? 'text-green-600' : params.value < 0 ? 'text-red-600' : '',
+        },
+        {
+          headerName: COLUMN_LABELS.current_price,
+          field: 'current_price',
+          width: 120,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.gain_loss_pct_vs_pp,
+          field: 'gain_loss_pct_vs_pp',
+          width: 160,
+          valueFormatter: (params) => formatPercent(params.value),
+          cellClass: (params) => params.value > 0 ? 'text-green-600 font-semibold' : params.value < 0 ? 'text-red-600 font-semibold' : '',
+        },
+        {
+          headerName: COLUMN_LABELS.sell_price_at_entry,
+          field: 'sell_price_at_entry',
+          width: 140,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.purchase_price,
+          field: 'purchase_price',
+          width: 160,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: 'bg-green-50 font-semibold',
+        },
+        {
+          headerName: COLUMN_LABELS.pct_portfolio_invested_at_entry,
+          field: 'pct_portfolio_invested_at_entry',
+          width: 200,
+          valueFormatter: (params) => formatPercent(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.pct_portfolio_current,
+          field: 'pct_portfolio_current',
+          width: 180,
+          valueFormatter: (params) => formatPercent(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.purchase_date,
+          field: 'purchase_date',
+          width: 130,
+          valueFormatter: (params) => formatDate(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.shares,
+          field: 'shares',
+          width: 100,
+        },
+      ],
     },
+
+    // ===== ENTRY/CLOSE DATES GROUP (Gray) =====
     {
-      headerName: 'Status',
-      field: 'status',
-      width: 100,
-      cellRenderer: (params: any) => (
-        <span className={`px-2 py-1 rounded text-xs ${getStatusColor(params.value)}`}>
-          {params.value}
-        </span>
-      ),
+      headerName: 'Entry/Close Dates',
+      headerClass: 'bg-gray-200 font-bold',
+      children: [
+        {
+          headerName: COLUMN_LABELS.entry_day_low,
+          field: 'entry_day_low',
+          width: 120,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.trading_days_open,
+          field: 'trading_days_open',
+          width: 140,
+        },
+      ],
     },
-    { headerName: 'Ticker', field: 'ticker', width: 80 },
+
+    // ===== RISK/ATR GROUP (Cyan) =====
     {
-      headerName: 'Entry Date',
-      field: 'entry_date',
-      width: 120,
-      valueFormatter: (params) => formatDate(params.value),
+      headerName: 'Risk/ATR',
+      headerClass: 'bg-cyan-200 font-bold',
+      children: [
+        {
+          headerName: COLUMN_LABELS.risk_atr_pct_above_low,
+          field: 'risk_atr_pct_above_low',
+          width: 180,
+          valueFormatter: (params) => formatPercent(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.multiple_from_sma_at_entry,
+          field: 'multiple_from_sma_at_entry',
+          width: 200,
+          valueFormatter: (params) => params.value != null ? params.value.toFixed(2) : '',
+        },
+        {
+          headerName: COLUMN_LABELS.atr_multiple_from_sma_current,
+          field: 'atr_multiple_from_sma_current',
+          width: 220,
+          valueFormatter: (params) => params.value != null ? params.value.toFixed(2) : '',
+        },
+      ],
     },
+
+    // ===== TAKE PROFIT GROUP (Orange) =====
     {
-      headerName: 'Entry Price',
-      field: 'entry_price',
-      width: 110,
-      valueFormatter: (params) => formatCurrency(params.value),
+      headerName: 'Take Profit',
+      headerClass: 'bg-orange-200 font-bold',
+      children: [
+        {
+          headerName: COLUMN_LABELS.tp_1x,
+          field: 'tp_1x',
+          width: 100,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: 'bg-orange-50',
+        },
+        {
+          headerName: COLUMN_LABELS.tp_2x,
+          field: 'tp_2x',
+          width: 100,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: 'bg-orange-50',
+        },
+        {
+          headerName: COLUMN_LABELS.tp_3x,
+          field: 'tp_3x',
+          width: 100,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: 'bg-orange-50',
+        },
+        {
+          headerName: COLUMN_LABELS.sma_10,
+          field: 'sma_10',
+          width: 100,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+      ],
     },
-    { headerName: 'Entry Shares', field: 'entry_shares', width: 120 },
-    { headerName: 'Shares Remaining', field: 'shares_remaining', width: 140 },
+
+    // ===== STOPS GROUP (Orange) =====
     {
-      headerName: 'Current Price',
-      field: 'current_price',
-      width: 120,
-      valueFormatter: (params) => formatCurrency(params.value),
+      headerName: 'Stops',
+      headerClass: 'bg-orange-200 font-bold',
+      children: [
+        {
+          headerName: COLUMN_LABELS.stop_override,
+          field: 'stop_override',
+          width: 100,
+          valueFormatter: (params) => formatCurrency(params.value),
+          editable: true,
+        },
+        {
+          headerName: COLUMN_LABELS.stop_3,
+          field: 'stop_3',
+          width: 110,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: 'bg-red-50',
+        },
+        {
+          headerName: COLUMN_LABELS.stop_2,
+          field: 'stop_2',
+          width: 110,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: 'bg-orange-50',
+        },
+        {
+          headerName: COLUMN_LABELS.stop_1,
+          field: 'stop_1',
+          width: 110,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: 'bg-yellow-50',
+        },
+        {
+          headerName: COLUMN_LABELS.entry_pct_above_stop3,
+          field: 'entry_pct_above_stop3',
+          width: 160,
+          valueFormatter: (params) => formatPercent(params.value),
+        },
+      ],
     },
+
+    // ===== INDICATORS GROUP (Cyan) =====
     {
-      headerName: 'Stop 3',
-      field: 'stop_3',
-      width: 100,
-      valueFormatter: (params) => formatCurrency(params.value),
-      cellClass: 'bg-red-50',
+      headerName: 'Indicators',
+      headerClass: 'bg-cyan-200 font-bold',
+      children: [
+        {
+          headerName: COLUMN_LABELS.atr_14,
+          field: 'atr_14',
+          width: 100,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.sma_50,
+          field: 'sma_50',
+          width: 100,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+      ],
     },
+
+    // ===== EXITS GROUP (Yellow) =====
     {
-      headerName: 'Stop 2',
-      field: 'stop_2',
-      width: 100,
-      valueFormatter: (params) => formatCurrency(params.value),
-      cellClass: 'bg-orange-50',
+      headerName: 'Exits',
+      headerClass: 'bg-yellow-200 font-bold',
+      children: [
+        {
+          headerName: COLUMN_LABELS.shares_exited,
+          field: 'shares_exited',
+          width: 120,
+        },
+        {
+          headerName: COLUMN_LABELS.shares_remaining,
+          field: 'shares_remaining',
+          width: 140,
+        },
+        {
+          headerName: COLUMN_LABELS.total_proceeds,
+          field: 'total_proceeds',
+          width: 130,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.total_fees,
+          field: 'total_fees',
+          width: 100,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+        {
+          headerName: COLUMN_LABELS.avg_exit_price,
+          field: 'avg_exit_price',
+          width: 130,
+          valueFormatter: (params) => formatCurrency(params.value),
+        },
+      ],
     },
+
+    // ===== PNL GROUP (Yellow) =====
     {
-      headerName: 'Stop 1',
-      field: 'stop_1',
-      width: 100,
-      valueFormatter: (params) => formatCurrency(params.value),
-      cellClass: 'bg-yellow-50',
-    },
-    {
-      headerName: '1R Distance',
-      field: 'one_r_distance',
-      width: 120,
-      valueFormatter: (params) => formatCurrency(params.value),
-    },
-    {
-      headerName: 'Realized PnL',
-      field: 'realized_pnl',
-      width: 130,
-      valueFormatter: (params) => formatCurrency(params.value),
-      cellClass: (params) => (params.value > 0 ? 'text-green-600' : params.value < 0 ? 'text-red-600' : ''),
-    },
-    {
-      headerName: 'Unrealized PnL',
-      field: 'unrealized_pnl',
-      width: 140,
-      valueFormatter: (params) => formatCurrency(params.value),
-      cellClass: (params) => (params.value > 0 ? 'text-green-600' : params.value < 0 ? 'text-red-600' : ''),
-    },
-    {
-      headerName: 'Total PnL',
-      field: 'total_pnl',
-      width: 130,
-      valueFormatter: (params) => formatCurrency(params.value),
-      cellClass: (params) => (params.value > 0 ? 'text-green-600 font-bold' : params.value < 0 ? 'text-red-600 font-bold' : 'font-bold'),
-    },
-    {
-      headerName: '% Gain/Loss',
-      field: 'percent_gain_loss',
-      width: 120,
-      valueFormatter: (params) => formatPercent(params.value),
-      cellClass: (params) => (params.value > 0 ? 'text-green-600' : params.value < 0 ? 'text-red-600' : ''),
-    },
-    {
-      headerName: 'R-Multiple',
-      field: 'r_multiple',
-      width: 120,
-      valueFormatter: (params) => formatRMultiple(params.value),
-      cellClass: (params) => (params.value > 0 ? 'text-green-600' : params.value < 0 ? 'text-red-600' : ''),
-    },
-    {
-      headerName: 'ATR(14)',
-      field: 'atr_14',
-      width: 100,
-      valueFormatter: (params) => formatCurrency(params.value),
-    },
-    {
-      headerName: 'Market Data Updated',
-      field: 'market_data_updated_at',
-      width: 180,
-      valueFormatter: (params) => formatDateTime(params.value),
+      headerName: 'PnL',
+      headerClass: 'bg-yellow-200 font-bold',
+      children: [
+        {
+          headerName: COLUMN_LABELS.realized_pnl,
+          field: 'realized_pnl',
+          width: 130,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: (params) => params.value > 0 ? 'text-green-600 font-semibold' : params.value < 0 ? 'text-red-600 font-semibold' : '',
+        },
+        {
+          headerName: COLUMN_LABELS.unrealized_pnl,
+          field: 'unrealized_pnl',
+          width: 140,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: (params) => params.value > 0 ? 'text-green-600 font-semibold' : params.value < 0 ? 'text-red-600 font-semibold' : '',
+        },
+        {
+          headerName: COLUMN_LABELS.total_pnl,
+          field: 'total_pnl',
+          width: 130,
+          valueFormatter: (params) => formatCurrency(params.value),
+          cellClass: (params) => params.value > 0 ? 'text-green-600 font-bold' : params.value < 0 ? 'text-red-600 font-bold' : 'font-bold',
+        },
+        {
+          headerName: COLUMN_LABELS.status,
+          field: 'status',
+          width: 100,
+          cellRenderer: (params: any) => (
+            <span className={`px-2 py-1 rounded text-xs ${getStatusColor(params.value)}`}>
+              {params.value}
+            </span>
+          ),
+        },
+      ],
     },
   ];
 
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-4">Trade Entries</h1>
+        <h1 className="text-3xl font-bold mb-2">Trade Entries</h1>
+        <p className="text-gray-600 mb-4">Complete WaveRider 3-Stop System - 36 Columns</p>
 
         <div className="flex gap-4 mb-4">
           <select
@@ -200,8 +393,8 @@ const EntriesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* AG Grid */}
-      <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
+      {/* AG Grid with all 36 columns */}
+      <div className="ag-theme-alpine" style={{ height: '700px', width: '100%' }}>
         <AgGridReact
           rowData={trades}
           columnDefs={columnDefs}
@@ -213,10 +406,11 @@ const EntriesPage: React.FC = () => {
           pagination={true}
           paginationPageSize={20}
           animateRows={true}
+          suppressColumnVirtualisation={false}
         />
       </div>
 
-      {/* Create Form Modal (simplified - would be a proper modal in production) */}
+      {/* Create Form Modal */}
       {showCreateForm && (
         <CreateTradeModal
           onClose={() => setShowCreateForm(false)}
@@ -230,7 +424,7 @@ const EntriesPage: React.FC = () => {
   );
 };
 
-// Simple create trade modal component
+// Create trade modal component
 const CreateTradeModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({
   onClose,
   onSuccess,
@@ -238,9 +432,9 @@ const CreateTradeModal: React.FC<{ onClose: () => void; onSuccess: () => void }>
   const [formData, setFormData] = useState<TradeCreate>({
     trade_id: '',
     ticker: '',
-    entry_date: new Date().toISOString().split('T')[0],
-    entry_price: 0,
-    entry_shares: 0,
+    purchase_date: new Date().toISOString().split('T')[0],
+    purchase_price: 0,
+    shares: 0,
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -291,46 +485,68 @@ const CreateTradeModal: React.FC<{ onClose: () => void; onSuccess: () => void }>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Entry Date *</label>
+            <label className="block text-sm font-medium mb-1">Purchase Date *</label>
             <input
               type="date"
               required
-              value={formData.entry_date}
-              onChange={(e) => setFormData({ ...formData, entry_date: e.target.value })}
+              value={formData.purchase_date}
+              onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
               className="w-full border rounded px-3 py-2"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Entry Price *</label>
+            <label className="block text-sm font-medium mb-1">Purchase Price *</label>
             <input
               type="number"
               step="0.01"
               required
-              value={formData.entry_price || ''}
-              onChange={(e) => setFormData({ ...formData, entry_price: parseFloat(e.target.value) })}
+              value={formData.purchase_price || ''}
+              onChange={(e) => setFormData({ ...formData, purchase_price: parseFloat(e.target.value) })}
               className="w-full border rounded px-3 py-2"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Entry Shares *</label>
+            <label className="block text-sm font-medium mb-1">Shares *</label>
             <input
               type="number"
               required
-              value={formData.entry_shares || ''}
-              onChange={(e) => setFormData({ ...formData, entry_shares: parseInt(e.target.value) })}
+              value={formData.shares || ''}
+              onChange={(e) => setFormData({ ...formData, shares: parseInt(e.target.value) })}
               className="w-full border rounded px-3 py-2"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Low of Day (optional)</label>
+            <label className="block text-sm font-medium mb-1">Entry Day Low (optional)</label>
             <input
               type="number"
               step="0.01"
-              value={formData.low_of_day || ''}
-              onChange={(e) => setFormData({ ...formData, low_of_day: parseFloat(e.target.value) || undefined })}
+              value={formData.entry_day_low || ''}
+              onChange={(e) => setFormData({ ...formData, entry_day_low: parseFloat(e.target.value) || undefined })}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Stop Override (optional)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.stop_override || ''}
+              onChange={(e) => setFormData({ ...formData, stop_override: parseFloat(e.target.value) || undefined })}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Portfolio Size (optional)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.portfolio_size || ''}
+              onChange={(e) => setFormData({ ...formData, portfolio_size: parseFloat(e.target.value) || undefined })}
               className="w-full border rounded px-3 py-2"
             />
           </div>
