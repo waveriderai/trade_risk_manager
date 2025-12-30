@@ -91,30 +91,47 @@ const EntriesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Summary Stats */}
+          {/* Summary Stats - 7 Cards exactly as in screenshot */}
           {summary && (
-            <div className="grid grid-cols-7 gap-4 mb-4">
-              <StatCard label="Total Trades" value={summary.total_trades} />
-              <StatCard label="Open" value={summary.open_trades} color="blue" />
-              <StatCard label="Partial" value={summary.partial_trades} color="yellow" />
-              <StatCard label="Closed" value={summary.closed_trades} color="gray" />
-              <StatCard
-                label="Realized P&L"
-                value={formatCurrency(summary.total_realized_pnl)}
-                color={summary.total_realized_pnl >= 0 ? 'green' : 'red'}
-              />
-              <StatCard
-                label="Unrealized P&L"
-                value={formatCurrency(summary.total_unrealized_pnl)}
-                color={summary.total_unrealized_pnl >= 0 ? 'green' : 'red'}
-              />
-              <StatCard
-                label="Total P&L"
-                value={formatCurrency(summary.total_pnl)}
-                color={summary.total_pnl >= 0 ? 'green' : 'red'}
-                large
-              />
-            </div>
+            <>
+              <div className="grid grid-cols-7 gap-3 mb-3">
+                <StatCard label="Total Trades" value={summary.total_trades} />
+                <StatCard label="Open" value={summary.open_trades} color="blue" />
+                <StatCard label="Partial" value={summary.partial_trades} color="yellow" />
+                <StatCard label="Closed" value={summary.closed_trades} color="gray" />
+                <StatCard
+                  label="Realized P&L"
+                  value={formatCurrency(summary.total_realized_pnl)}
+                  color={summary.total_realized_pnl >= 0 ? 'green' : 'red'}
+                />
+                <StatCard
+                  label="Unrealized P&L"
+                  value={formatCurrency(summary.total_unrealized_pnl)}
+                  color={summary.total_unrealized_pnl >= 0 ? 'green' : 'red'}
+                />
+                <StatCard
+                  label="Total P&L"
+                  value={formatCurrency(summary.total_pnl)}
+                  color={summary.total_pnl >= 0 ? 'green' : 'red'}
+                  large
+                />
+              </div>
+              
+              {/* % Portfolio Invested - Special highlight card */}
+              {summary.pct_portfolio_invested !== null && summary.pct_portfolio_invested !== undefined && (
+                <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/30 border border-blue-700/40 rounded px-4 py-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-300">% Portfolio Invested</span>
+                    <span className="text-2xl font-bold text-blue-400">
+                      {summary.pct_portfolio_invested.toFixed(2)}%
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      ({summary.open_trades} Open + {summary.partial_trades} Partial)
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </header>
@@ -203,7 +220,7 @@ const EntriesPage: React.FC = () => {
   );
 };
 
-// Stat Card Component
+// Stat Card Component - Matches screenshot exactly
 const StatCard: React.FC<{
   label: string;
   value: string | number;
@@ -219,9 +236,9 @@ const StatCard: React.FC<{
   };
 
   return (
-    <div className="bg-gray-700 rounded-lg px-4 py-3">
-      <div className="text-xs text-gray-400 mb-1">{label}</div>
-      <div className={`${large ? 'text-2xl' : 'text-xl'} font-bold ${colorClasses[color]}`}>
+    <div className="bg-gray-700 rounded px-3 py-2">
+      <div className="text-xs text-gray-400 mb-0.5 uppercase tracking-wide">{label}</div>
+      <div className={`${large ? 'text-2xl' : 'text-lg'} font-bold ${colorClasses[color]}`}>
         {value}
       </div>
     </div>
