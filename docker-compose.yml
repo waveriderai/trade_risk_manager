@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: waverider_db
+    environment:
+      POSTGRES_USER: waverider
+      POSTGRES_PASSWORD: waverider_password
+      POSTGRES_DB: waverider_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U waverider"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - waverider_network
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: waverider_backend
+    environment:
+      DATABASE_URL: postgresql://waverider:waverider_password@db:5432/waverider_db
+      POLYGON_API_KEY: ${POLYGON_API_KEY:-demo}
+      APP_ENV: ${APP_ENV:-development}
+      DEBUG: ${DEBUG:-True}
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8080,http://frontend:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - waverider_network
+    restart: unless-stopped
+
+  # Frontend (React)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: waverider_frontend
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000/api/v1}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - waverider_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  waverider_network:
+    driver: bridge
