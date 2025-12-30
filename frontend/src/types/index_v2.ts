@@ -54,9 +54,9 @@ export interface Trade {
   one_r?: number;
 
   // ===== CALCULATED: Take Profit Levels =====
-  tp_1x?: number;
-  tp_2x?: number;
-  tp_3x?: number;
+  tp_1r?: number;
+  tp_2r?: number;
+  tp_3r?: number;
 
   // ===== CALCULATED: Exit Info =====
   sell_price_at_entry?: number;  // SP
@@ -191,9 +191,9 @@ export const ENTRIES_COLUMN_GROUPS: ColumnGroup[] = [
     name: 'Take Profit',
     color: 'orange',
     columns: [
-      'tp_1x',
-      'tp_2x',
-      'tp_3x',
+      'tp_1r',
+      'tp_2r',
+      'tp_3r',
       'sma_10'
     ]
   },
