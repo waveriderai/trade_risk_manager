@@ -7,12 +7,14 @@
  */
 export const formatCurrency = (value?: number | null): string => {
   if (value === null || value === undefined) return '-';
+  const num = typeof value === 'number' ? value : parseFloat(String(value));
+  if (isNaN(num)) return '-';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(num);
 };
 
 /**
@@ -20,7 +22,9 @@ export const formatCurrency = (value?: number | null): string => {
  */
 export const formatPercent = (value?: number | null, decimals: number = 2): string => {
   if (value === null || value === undefined) return '-';
-  return `${value.toFixed(decimals)}%`;
+  const num = typeof value === 'number' ? value : parseFloat(String(value));
+  if (isNaN(num)) return '-';
+  return `${num.toFixed(decimals)}%`;
 };
 
 /**
@@ -28,7 +32,9 @@ export const formatPercent = (value?: number | null, decimals: number = 2): stri
  */
 export const formatNumber = (value?: number | null, decimals: number = 2): string => {
   if (value === null || value === undefined) return '-';
-  return value.toFixed(decimals);
+  const num = typeof value === 'number' ? value : parseFloat(String(value));
+  if (isNaN(num)) return '-';
+  return num.toFixed(decimals);
 };
 
 /**
@@ -36,7 +42,9 @@ export const formatNumber = (value?: number | null, decimals: number = 2): strin
  */
 export const formatRMultiple = (value?: number | null): string => {
   if (value === null || value === undefined) return '-';
-  return `${value > 0 ? '+' : ''}${value.toFixed(2)}R`;
+  const num = typeof value === 'number' ? value : parseFloat(String(value));
+  if (isNaN(num)) return '-';
+  return `${num > 0 ? '+' : ''}${num.toFixed(2)}R`;
 };
 
 /**
