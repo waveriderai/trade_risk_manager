@@ -48,6 +48,29 @@ const EntriesPage: React.FC = () => {
     loadSummary();
   }, [loadTrades, loadSummary]);
 
+  // Auto-refresh when page becomes visible (e.g., switching tabs or navigating back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadTrades();
+        loadSummary();
+      }
+    };
+
+    const handleFocus = () => {
+      loadTrades();
+      loadSummary();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [loadTrades, loadSummary]);
+
   const handleRefreshAll = async () => {
     setLoading(true);
     await Promise.all([loadTrades(), loadSummary()]);
