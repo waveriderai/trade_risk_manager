@@ -88,16 +88,17 @@ class TestRiskATRRUnits:
         # OneR = 5.00, ATR_Entry = 2.50 => 5.00 / 2.50 = 2.00
         one_r = Decimal("5.00")
         atr_at_entry = Decimal("2.50")
+        entry_day_low = Decimal("95.00")
         
         result = WaveRiderCalculations.calculate_atr_metrics(
             purchase_price=Decimal("100.00"),
             current_price=Decimal("105.00"),
-            entry_day_low=Decimal("95.00"),
+            entry_day_low=entry_day_low,
+            one_r=one_r,
             atr_at_entry=atr_at_entry,
             atr_14=Decimal("3.00"),
             sma_at_entry=Decimal("98.00"),
-            sma_50=Decimal("102.00"),
-            one_r=one_r
+            sma_50=Decimal("102.00")
         )
         
         assert result["risk_atr_r_units"] is not None
@@ -114,11 +115,11 @@ class TestRiskATRRUnits:
             purchase_price=Decimal("100.00"),
             current_price=Decimal("105.00"),
             entry_day_low=Decimal("97.00"),
+            one_r=one_r,
             atr_at_entry=atr_at_entry,
             atr_14=Decimal("12.00"),
             sma_at_entry=Decimal("98.00"),
-            sma_50=Decimal("102.00"),
-            one_r=one_r
+            sma_50=Decimal("102.00")
         )
         
         assert result["risk_atr_r_units"] is not None
@@ -130,11 +131,11 @@ class TestRiskATRRUnits:
             purchase_price=Decimal("100.00"),
             current_price=Decimal("105.00"),
             entry_day_low=Decimal("95.00"),
+            one_r=Decimal("5.00"),
             atr_at_entry=None,  # No ATR at entry
             atr_14=Decimal("3.00"),
             sma_at_entry=Decimal("98.00"),
-            sma_50=Decimal("102.00"),
-            one_r=Decimal("5.00")
+            sma_50=Decimal("102.00")
         )
         
         assert result["risk_atr_r_units"] is None
@@ -145,11 +146,11 @@ class TestRiskATRRUnits:
             purchase_price=Decimal("100.00"),
             current_price=Decimal("105.00"),
             entry_day_low=Decimal("95.00"),
+            one_r=None,  # No OneR
             atr_at_entry=Decimal("2.50"),
             atr_14=Decimal("3.00"),
             sma_at_entry=Decimal("98.00"),
-            sma_50=Decimal("102.00"),
-            one_r=None  # No OneR
+            sma_50=Decimal("102.00")
         )
         
         assert result["risk_atr_r_units"] is None
@@ -166,7 +167,7 @@ class TestRMultiple:
         shares = 100
         one_r = Decimal("5.00")
         
-        result = WaveRiderCalculations.calculate_r_multiple(total_pnl, shares, one_r)
+        result = WaveRiderCalculations.calculate_r_multiple(total_pnl, one_r, shares)
         
         assert result is not None
         expected = total_pnl / (shares * one_r)
@@ -181,7 +182,7 @@ class TestRMultiple:
         shares = 100
         one_r = Decimal("3.00")
         
-        result = WaveRiderCalculations.calculate_r_multiple(total_pnl, shares, one_r)
+        result = WaveRiderCalculations.calculate_r_multiple(total_pnl, one_r, shares)
         
         assert result is not None
         assert result == Decimal("-1.00")
@@ -194,7 +195,7 @@ class TestRMultiple:
         shares = 100
         one_r = Decimal("2.50")
         
-        result = WaveRiderCalculations.calculate_r_multiple(total_pnl, shares, one_r)
+        result = WaveRiderCalculations.calculate_r_multiple(total_pnl, one_r, shares)
         
         assert result is not None
         assert result == Decimal("1.00")
@@ -203,8 +204,8 @@ class TestRMultiple:
         """Test NULL when OneR is missing."""
         result = WaveRiderCalculations.calculate_r_multiple(
             total_pnl=Decimal("1000.00"),
-            shares=100,
-            one_r=None
+            one_r=None,
+            shares=100
         )
         
         assert result is None
@@ -213,8 +214,8 @@ class TestRMultiple:
         """Test NULL when OneR is zero."""
         result = WaveRiderCalculations.calculate_r_multiple(
             total_pnl=Decimal("1000.00"),
-            shares=100,
-            one_r=Decimal("0.00")
+            one_r=Decimal("0.00"),
+            shares=100
         )
         
         assert result is None
@@ -224,8 +225,8 @@ class TestRMultiple:
         # Total PnL = $0, R-Multiple = 0.00R
         result = WaveRiderCalculations.calculate_r_multiple(
             total_pnl=Decimal("0.00"),
-            shares=100,
-            one_r=Decimal("5.00")
+            one_r=Decimal("5.00"),
+            shares=100
         )
         
         assert result is not None
@@ -291,11 +292,11 @@ class TestMissingInputsNullHandling:
             purchase_price=Decimal("100.00"),
             current_price=Decimal("105.00"),
             entry_day_low=None,  # Missing
+            one_r=Decimal("5.00"),
             atr_at_entry=Decimal("2.50"),
             atr_14=Decimal("3.00"),
             sma_at_entry=Decimal("98.00"),
-            sma_50=Decimal("102.00"),
-            one_r=Decimal("5.00")
+            sma_50=Decimal("102.00")
         )
         
         # risk_atr_pct_above_low should be NULL (needs entry_day_low)

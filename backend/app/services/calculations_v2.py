@@ -200,12 +200,12 @@ class WaveRiderCalculations:
     def calculate_atr_metrics(
         purchase_price: Decimal,
         current_price: Optional[Decimal],
+        entry_day_low: Optional[Decimal],
         one_r: Optional[Decimal],
         atr_at_entry: Optional[Decimal],
         atr_14: Optional[Decimal],
         sma_at_entry: Optional[Decimal],
-        sma_50: Optional[Decimal],
-        one_r: Optional[Decimal]
+        sma_50: Optional[Decimal]
     ) -> Dict[str, Optional[Decimal]]:
         """
         Calculate ATR and SMA-based metrics.
@@ -216,12 +216,12 @@ class WaveRiderCalculations:
         - atr_pct_multiple_from_ma_at_entry: ((PP-SMAEntry)/SMAEntry) / (AtrEntry/PP)
         - atr_pct_multiple_from_ma: ((CP-SMA)/SMA) / (ATR/CP)
         """
-        # Risk / ATR (R units)
-        # Formula: OneR / ATR_Entry
-        risk_atr_r_units = None
-        if one_r and atr_at_entry and atr_at_entry > 0:
-            risk_atr_r_units = one_r / atr_at_entry
-            risk_atr_r_units = risk_atr_r_units.quantize(
+        # Risk/ATR (% above Low Exit)
+        # Formula: (PP - LoD) / ATR_at_entry * 100
+        risk_atr_pct_above_low = None
+        if atr_at_entry and atr_at_entry > 0 and entry_day_low:
+            risk_atr_pct_above_low = ((purchase_price - entry_day_low) / atr_at_entry) * 100
+            risk_atr_pct_above_low = risk_atr_pct_above_low.quantize(
                 Decimal("0.0001"), rounding=ROUND_HALF_UP
             )
 
@@ -268,8 +268,8 @@ class WaveRiderCalculations:
     @staticmethod
     def calculate_r_multiple(
         total_pnl: Decimal,
-        shares: int,
-        one_r: Optional[Decimal]
+        one_r: Optional[Decimal],
+        shares: int
     ) -> Optional[Decimal]:
         """
         Calculate R-Multiple (risk-reward ratio).
@@ -469,16 +469,16 @@ class WaveRiderCalculations:
         trade.pct_portfolio_current = portfolio_metrics["pct_portfolio_current"]
         trade.gain_loss_pct_portfolio_impact = portfolio_metrics["gain_loss_pct_portfolio_impact"]
 
-        # 5. Calculate ATR/SMA metrics (needs one_r)
+        # 5. Calculate ATR/SMA metrics (needs entry_day_low and one_r)
         atr_metrics = WaveRiderCalculations.calculate_atr_metrics(
             trade.purchase_price,
             trade.current_price,
-            trade.one_r,  # Now uses one_r instead of entry_day_low
+            trade.entry_day_low,
+            trade.one_r,
             trade.atr_at_entry,
             trade.atr_14,
             trade.sma_at_entry,
-            trade.sma_50,
-            trade.one_r
+            trade.sma_50
         )
         trade.risk_atr_pct_above_low = atr_metrics["risk_atr_pct_above_low"]
         trade.risk_atr_r_units = atr_metrics["risk_atr_r_units"]
@@ -488,20 +488,13 @@ class WaveRiderCalculations:
         # 6. Calculate R-Multiple
         trade.r_multiple = WaveRiderCalculations.calculate_r_multiple(
             trade.total_pnl,
-            trade.shares,
-            trade.one_r
+            trade.one_r,
+            trade.shares
         )
 
         # 7. Calculate trading days open
         trade.trading_days_open = WaveRiderCalculations.calculate_trading_days(
             trade.purchase_date
-        )
-
-        # 7. Calculate R-Multiple
-        trade.r_multiple = WaveRiderCalculations.calculate_r_multiple(
-            trade.total_pnl,
-            trade.one_r,
-            trade.shares
         )
 
 
