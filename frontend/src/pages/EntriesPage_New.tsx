@@ -48,6 +48,29 @@ const EntriesPage: React.FC = () => {
     loadSummary();
   }, [loadTrades, loadSummary]);
 
+  // Auto-refresh when page becomes visible (e.g., switching tabs or navigating back)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadTrades();
+        loadSummary();
+      }
+    };
+
+    const handleFocus = () => {
+      loadTrades();
+      loadSummary();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [loadTrades, loadSummary]);
+
   const handleRefreshAll = async () => {
     setLoading(true);
     await Promise.all([loadTrades(), loadSummary()]);
@@ -61,9 +84,7 @@ const EntriesPage: React.FC = () => {
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-white mb-1">
-                <span className="text-blue-400">3-Stop</span> Trading Journal
-              </h1>
+              <h1 className="text-2xl font-bold text-white mb-1">Trade Entries</h1>
               <p className="text-sm text-gray-400">
                 Manage your trade positions and track performance
               </p>
