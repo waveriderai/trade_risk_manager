@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     ENABLE_BACKGROUND_REFRESH: bool = False
     REFRESH_INTERVAL_MINUTES: int = 60
 
+    # Trading Configuration
+    DEFAULT_PORTFOLIO_SIZE: float = 300000.00  # Default portfolio size in USD
+    STOP3_BUFFER_PCT: float = 0.005  # Default 0.5% buffer for Stop3 calculation
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v) -> List[str]:
