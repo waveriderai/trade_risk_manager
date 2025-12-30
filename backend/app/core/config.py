@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     POLYGON_API_KEY: str = ""
 
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:8080"
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
 
     # Worker
     ENABLE_BACKGROUND_REFRESH: bool = False
